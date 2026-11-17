@@ -1,4 +1,4 @@
-# Execute: tactics board
+# csgg: CS2 tactics board
 
 A web app for planning CS2 executes on a 2D board: place players, draw their routes, drop smokes, flashes,
 molotovs and HEs at the second they pop, then press play to watch the plan run. Strats are shared as a single

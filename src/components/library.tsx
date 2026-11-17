@@ -261,7 +261,7 @@ export function Library() {
       </section>
 
       <footer className="mt-16 border-t border-line pt-6 text-sm text-faint">
-        Map radar overviews and screenshots are © Valve Corporation. Execute is not affiliated with or endorsed by Valve.
+        Map radar overviews and screenshots are © Valve Corporation. csgg is not affiliated with or endorsed by Valve.
       </footer>
     </div>
   );
