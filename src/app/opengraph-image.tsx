@@ -18,7 +18,7 @@ export default function OpenGraphImage() {
         </svg>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ fontSize: 96, fontWeight: 700, color: "#ece5d3" }}>{APP_NAME}</div>
-          <div style={{ fontSize: 44, color: "#ece5d3", lineHeight: 1.2, maxWidth: 680 }}>The free CS2 strat planner for IGLs, coaches and teams</div>
+          <div style={{ fontSize: 44, color: "#ece5d3", lineHeight: 1.2, maxWidth: 680 }}>The free CS2 strat planner for players, teams and coaches</div>
           <div style={{ fontSize: 28, color: "#90b8f8" }}>Plan it. Time it. Share it in one link.</div>
         </div>
       </div>
