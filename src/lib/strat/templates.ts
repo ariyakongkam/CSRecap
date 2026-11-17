@@ -81,43 +81,48 @@ function builder(map: MapId, side: Side, name: string) {
   };
 }
 
+const p = (x: number, y: number): Pt => ({ x, y });
+
 function mirageAExecute(): Strat {
   const b = builder("mirage", "T", "Mirage A Execute");
   b.strat.call = "Default into A when mid is quiet and CT has two on A. Call at 1:15.";
   b.strat.notes = "Abort: if Palace entry dies before smokes land, fall back to a mid split.\nPlant default for the post-plant.";
   b.name("Execute");
-  const p1 = b.player(1, "Palace entry", b.at("t-spawn", 40, 90), 135);
-  const p2 = b.player(2, "Ramp support", b.at("t-spawn", -45, 55), 160);
-  const p3 = b.player(3, "Smokes", b.at("t-spawn", -45, -30));
-  const p4 = b.player(4, "Flash", b.at("t-spawn", 45, 10));
-  const p5 = b.player(5, "Lurk mid", b.at("t-spawn", 30, -80), 180);
-  b.route(p1, 3, b.at("palace-path", 0, 80), b.at("palace", 100, 0), b.at("palace", -40, 0));
-  b.route(p2, 3, b.at("a-ramp", 60, 0), b.at("a-ramp", -40, 0));
-  b.route(p3, 2, b.at("a-ramp", 80, 0));
-  b.route(p4, 2, b.at("a-ramp", 40, 10));
-  b.route(p5, 1, b.at("top-mid", 20, 0), b.at("mid", 40, 0));
+  const p1 = b.player(1, "Palace entry", p(895, 470), 90);
+  const p2 = b.player(2, "Ramp support", p(865, 410), 110);
+  const p3 = b.player(3, "Smokes", p(895, 350));
+  const p4 = b.player(4, "Flash", p(865, 290));
+  const p5 = b.player(5, "Lurk mid", p(890, 230), 180);
+  // Palace: down the T side, through Palace, out onto A.
+  b.route(p1, 3, p(880, 600), p(860, 650), p(860, 760), p(700, 770));
+  // Ramp: along the bottom corridor to the top of A Ramp.
+  b.route(p2, 3, p(880, 560), p(820, 605), p(730, 635));
+  b.route(p3, 2, p(880, 560), p(820, 605), p(790, 615));
+  b.route(p4, 2, p(880, 580), p(840, 610), p(760, 625));
+  // Lurk: across Top Mid into Mid.
+  b.route(p5, 1, p(875, 540), p(760, 540), p(690, 470), p(570, 455));
   b.utility("smoke", 11, b.at("jungle"));
-  b.utility("smoke", 11, b.at("ct-spawn", 60, 0));
+  b.utility("smoke", 11, b.at("ct-spawn", 40, 0));
   b.utility("smoke", 12, b.at("stairs"));
-  b.utility("flash", 14, b.at("a-site", 40, -30));
-  b.route(p1, 15, b.at("a-site", 90, 40), b.at("a-site", 0, 30));
-  b.route(p2, 15, b.at("tetris"), b.at("a-site", 30, -20));
-  b.enemy(1, b.at("a-site", -60, -40), 0);
-  b.enemy(2, b.at("jungle", -20, 10), 20);
-  b.lineup("Jungle smoke from A Ramp", "https://www.youtube.com/results?search_query=cs2+mirage+jungle+smoke+lineup", b.at("a-ramp", 70, -18));
-  b.note("Smokes down: go on the flash", 13, b.at("ticket", 0, 75));
+  b.utility("flash", 14, b.at("a-site", 10, -20));
+  b.route(p1, 15, p(640, 760), p(560, 745));
+  b.route(p2, 15, p(650, 680), p(600, 700), p(560, 700));
+  b.enemy(1, b.at("a-site", -20, 10), 0);
+  b.enemy(2, b.at("jungle", 0, 0), 20);
+  b.lineup("Jungle smoke from A Ramp", "https://www.youtube.com/results?search_query=cs2+mirage+jungle+smoke+lineup", p(800, 590));
+  b.note("Smokes down: go on the flash", 13, p(300, 880));
 
   b.next("Post-plant");
   b.clearEnemies();
-  b.bomb(1, b.at("a-site", -10, 10));
-  b.route(b.mine(1), 1, b.at("a-site", 60, 40));
-  b.route(b.mine(2), 1, b.at("palace", -60, 0));
-  b.route(b.mine(3), 2, b.at("tetris", 0, 0));
-  b.route(b.mine(4), 2, b.at("a-ramp", -60, 0));
-  b.enemy(3, b.at("ct-spawn", -20, 20), 0);
-  b.enemy(4, b.at("market-ct", 0, 60), 90);
-  b.utility("molotov", 8, b.at("a-site", -10, 10));
-  b.note("Play crossfires, molly the bomb on the defuse", 0, b.at("ticket", 0, 75));
+  b.bomb(1, b.at("a-site", 0, 20));
+  b.route(b.mine(1), 1, p(520, 780));
+  b.route(b.mine(2), 1, p(630, 710));
+  b.route(b.mine(3), 2, p(740, 630));
+  b.route(b.mine(4), 2, p(700, 760));
+  b.enemy(3, b.at("ct-spawn", -20, 10), 0);
+  b.enemy(4, b.at("market-ct", 0, 40), 90);
+  b.utility("molotov", 8, b.at("a-site", 0, 20));
+  b.note("Play crossfires, molly the bomb on the defuse", 0, p(300, 880));
   return b.strat;
 }
 
@@ -126,22 +131,24 @@ function dust2LongTake(): Strat {
   b.strat.call = "When long has been passive for two rounds. Call off spawn.";
   b.strat.notes = "Abort: if long doors gets a molotov early, swap to a cat + long split.";
   b.name("Long take");
-  const p1 = b.player(1, "Entry", b.at("t-spawn", 100, -30), 0);
-  const p2 = b.player(2, "Trade", b.at("t-spawn", 40, 30));
-  const p3 = b.player(3, "Smokes", b.at("t-spawn", -20, -30));
-  const p4 = b.player(4, "AWP", b.at("t-spawn", -80, 30));
-  const p5 = b.player(5, "Short", b.at("t-spawn", -110, -30));
-  b.route(p1, 0, b.at("outside-long"), b.at("long-doors"), b.at("long-a", 0, 200));
-  b.route(p2, 1, b.at("outside-long"), b.at("long-doors"), b.at("long-a", 0, 240));
-  b.route(p3, 0, b.at("outside-long", 0, 40));
-  b.route(p4, 2, b.at("outside-long", -20, 60));
-  b.route(p5, 0, b.at("t-mid"), b.at("mid", 0, 60), b.at("short", 0, 80));
-  b.utility("smoke", 14, b.at("ct-spawn", 60, 20));
-  b.utility("flash", 16, b.at("long-a", 0, -80));
-  b.utility("molotov", 17, b.at("a-site", 60, 30));
-  b.route(p1, 18, b.at("long-a", 0, -120), b.at("a-site", 40, 20));
-  b.note("Wait for the CT smoke before pushing long", 12, { x: 300, y: 950 });
-  b.enemy(1, b.at("long-a", 0, -150), 90);
+  const p1 = b.player(1, "Entry", p(470, 885), 0);
+  const p2 = b.player(2, "Trade", p(430, 905));
+  const p3 = b.player(3, "Smokes", p(390, 880));
+  const p4 = b.player(4, "AWP", p(350, 905));
+  const p5 = b.player(5, "Short", p(310, 880));
+  // Long: out of spawn, through the doors, up Long.
+  b.route(p1, 0, p(560, 880), p(620, 790), p(700, 680), p(710, 600), p(800, 590), p(890, 560));
+  b.route(p2, 1, p(560, 900), p(625, 800), p(705, 690), p(715, 610), p(810, 600), p(890, 600));
+  b.route(p3, 0, p(560, 870), p(615, 780));
+  b.route(p4, 2, p(560, 905), p(630, 810));
+  // Short: up Mid, onto Short.
+  b.route(p5, 0, p(470, 830), p(475, 600), p(475, 410), p(560, 400), p(645, 360));
+  b.utility("smoke", 14, p(745, 245));
+  b.utility("flash", 16, p(895, 330));
+  b.utility("molotov", 17, b.at("a-site", 0, 10));
+  b.route(p1, 18, p(895, 320), p(830, 200));
+  b.note("Wait for the CT smoke before pushing long", 12, p(200, 960));
+  b.enemy(1, p(895, 300), 90);
   b.enemy(2, b.at("a-site", -40, 0), 0);
   return b.strat;
 }

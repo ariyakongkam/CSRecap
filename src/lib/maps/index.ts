@@ -1,12 +1,23 @@
 /**
- * Map layouts. These are our own simplified schematics, drawn as named
- * areas on a 1000×1000 board, not Valve's radar images (those are © Valve
- * and not licensed for reuse). Areas are what a plan can later be checked
- * against: "smoke landed in Jungle", "entry reached A Site".
+ * Map layouts, drawn in our own style from our own geometry.
  *
- * Overlapping areas are fine: the board draws all walls first and all
- * floors on top, so connected areas merge into one floor plan.
+ * The floor outlines and cover in `traced/*.json` were traced from the CS2
+ * radar overviews by `scripts/trace-maps.py`: only the shape of the playable
+ * area is kept (polygons on our 1000×1000 board), no image data. Callout
+ * areas below are placed on that geometry by hand; bombsite and spawn
+ * positions come from the maps' public overview configs.
+ *
+ * Areas are what a plan can be checked against ("smoke landed in Jungle"),
+ * and what the example strats are positioned by.
  */
+import ancient from "./traced/ancient.json";
+import anubis from "./traced/anubis.json";
+import dust2 from "./traced/dust2.json";
+import inferno from "./traced/inferno.json";
+import mirage from "./traced/mirage.json";
+import nuke from "./traced/nuke.json";
+import overpass from "./traced/overpass.json";
+import train from "./traced/train.json";
 
 export type Team = "T" | "CT";
 
@@ -18,20 +29,10 @@ export interface Area {
   y: number;
   w: number;
   h: number;
-  /** Corridors are drawn but not labelled. */
-  corridor?: boolean;
   /** Bombsite letter. */
   site?: "A" | "B";
   /** Spawn zone, tinted in the team's colour. */
   spawn?: Team;
-}
-
-/** Cover: boxes, cars, walls inside an area. */
-export interface Prop {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
 }
 
 /** A smaller named spot (a box, a corner) shown in a lighter label. */
@@ -41,15 +42,22 @@ export interface Callout {
   y: number;
 }
 
+export interface Traced {
+  /** SVG path data of the walkable floor (outer outlines and holes, even-odd). */
+  floor: string;
+  /** Cover objects as four-corner polygons. */
+  props: number[][][];
+}
+
 export interface MapDef {
   id: MapId;
   name: string;
+  traced: Traced | null;
   areas: Area[];
-  props: Prop[];
   callouts: Callout[];
 }
 
-export type MapId = "mirage" | "dust2" | "blank";
+export type MapId = "mirage" | "dust2" | "inferno" | "nuke" | "ancient" | "anubis" | "train" | "overpass" | "blank";
 
 const r = (id: string, name: string, x: number, y: number, w: number, h: number, extra: Partial<Area> = {}): Area => ({
   id,
@@ -60,107 +68,98 @@ const r = (id: string, name: string, x: number, y: number, w: number, h: number,
   h,
   ...extra,
 });
-const corridor = (id: string, x: number, y: number, w: number, h: number): Area => r(id, "", x, y, w, h, { corridor: true });
-const box = (x: number, y: number, w: number, h: number): Prop => ({ x, y, w, h });
+
+/** Bombsites and spawns placed from a map's overview config (positions as 0–1 fractions). */
+function basics(sites: { A?: [number, number]; B?: [number, number] }, t: [number, number], ct: [number, number]): Area[] {
+  const at = ([fx, fy]: [number, number], w: number, h: number) => ({ x: fx * 1000 - w / 2, y: fy * 1000 - h / 2, w, h });
+  const out: Area[] = [];
+  if (sites.A) out.push({ id: "a-site", name: "A Site", site: "A", ...at(sites.A, 120, 100) });
+  if (sites.B) out.push({ id: "b-site", name: "B Site", site: "B", ...at(sites.B, 120, 100) });
+  out.push({ id: "t-spawn", name: "T Spawn", spawn: "T", ...at(t, 110, 80) });
+  out.push({ id: "ct-spawn", name: "CT Spawn", spawn: "CT", ...at(ct, 110, 80) });
+  return out;
+}
 
 const MIRAGE: MapDef = {
   id: "mirage",
   name: "Mirage",
+  traced: mirage,
   areas: [
-    r("t-spawn", "T Spawn", 800, 400, 150, 200, { spawn: "T" }),
-    r("top-mid", "Top Mid", 640, 450, 170, 70),
-    r("mid", "Mid", 430, 430, 220, 90),
-    r("window", "Window", 340, 420, 90, 70),
-    r("connector", "Connector", 400, 520, 70, 90),
-    r("jungle", "Jungle", 320, 610, 120, 70),
-    r("stairs", "Stairs", 460, 600, 70, 70),
-    r("a-ramp", "A Ramp", 600, 600, 200, 60),
-    r("tetris", "Tetris", 530, 640, 70, 60),
-    r("a-site", "A Site", 300, 690, 240, 150, { site: "A" }),
-    r("palace", "Palace", 540, 850, 260, 60),
-    corridor("palace-path", 800, 600, 70, 310),
-    r("ct-spawn", "CT Spawn", 140, 640, 160, 150, { spawn: "CT" }),
-    r("ticket", "Ticket", 230, 840, 110, 60),
-    r("short", "Short", 470, 250, 70, 180),
-    r("b-short", "B Short", 380, 250, 90, 60),
-    r("t-apps", "T Apps", 780, 180, 120, 220),
-    r("b-apps", "B Apps", 380, 150, 400, 70),
-    r("b-site", "B Site", 140, 100, 240, 180, { site: "B" }),
-    r("market", "Market", 140, 300, 120, 100),
-    r("kitchen", "Kitchen", 260, 300, 90, 80),
-    corridor("market-ct", 170, 400, 60, 240),
-  ],
-  props: [
-    box(492, 702, 30, 30), // firebox
-    box(386, 790, 54, 22), // triple
-    box(452, 742, 26, 26), // default
-    box(650, 462, 22, 22), // top mid box
-    box(168, 118, 64, 16), // bench
-    box(318, 226, 44, 26), // van
-    box(546, 650, 22, 22), // tetris box
+    r("t-spawn", "T Spawn", 845, 290, 70, 130, { spawn: "T" }),
+    r("palace-path", "", 850, 430, 55, 180),
+    r("top-mid", "Top Mid", 650, 420, 85, 100),
+    r("mid", "Mid", 480, 410, 160, 100),
+    r("short", "Short", 330, 260, 70, 140),
+    r("connector", "Connector", 400, 495, 70, 85),
+    r("jungle", "Jungle", 335, 565, 65, 75),
+    r("stairs", "Stairs", 405, 585, 60, 55),
+    r("a-ramp", "A Ramp", 670, 600, 170, 70),
+    r("tetris", "Tetris", 605, 680, 50, 70),
+    r("a-site", "A Site", 470, 650, 140, 140, { site: "A" }),
+    r("palace", "Palace", 655, 715, 180, 85),
+    r("ct-spawn", "CT Spawn", 235, 640, 110, 130, { spawn: "CT" }),
+    r("ticket", "Ticket", 360, 735, 100, 60),
+    r("market-ct", "", 290, 470, 50, 190),
+    r("market", "Market", 155, 330, 100, 120),
+    r("b-site", "B Site", 110, 170, 150, 135, { site: "B" }),
+    r("b-apps", "B Apps", 270, 160, 170, 70),
+    r("t-apps", "T Apps", 540, 150, 220, 50),
   ],
   callouts: [
-    { text: "Firebox", x: 507, y: 750 },
-    { text: "Triple", x: 413, y: 830 },
-    { text: "Ninja", x: 330, y: 826 },
-    { text: "Van", x: 340, y: 270 },
-    { text: "Bench", x: 200, y: 152 },
+    { text: "Ninja", x: 495, y: 790 },
+    { text: "Window", x: 395, y: 435 },
+    { text: "Catwalk", x: 455, y: 380 },
   ],
 };
 
 const DUST2: MapDef = {
   id: "dust2",
   name: "Dust II",
+  traced: dust2,
   areas: [
-    r("t-spawn", "T Spawn", 380, 820, 260, 130, { spawn: "T" }),
-    r("outside-long", "Outside Long", 640, 720, 100, 140),
-    r("long-doors", "Long Doors", 740, 720, 70, 80),
-    r("long-a", "Long A", 760, 280, 110, 440),
-    r("a-site", "A Site", 620, 110, 260, 170, { site: "A" }),
-    r("short", "Short", 520, 280, 80, 270),
-    corridor("short-a", 580, 200, 60, 110),
-    r("mid", "Mid", 420, 330, 100, 420),
-    corridor("t-mid", 440, 750, 60, 70),
-    r("mid-doors", "Mid Doors", 440, 230, 60, 100),
-    r("ct-spawn", "CT Spawn", 420, 110, 200, 120, { spawn: "CT" }),
-    r("b-doors", "B Doors", 340, 230, 100, 60),
-    r("b-site", "B Site", 100, 110, 240, 210, { site: "B" }),
-    r("b-tunnels", "B Tunnels", 140, 320, 100, 240),
-    r("upper-tunnels", "Upper Tunnels", 120, 560, 160, 250),
-    r("lower-tunnels", "Lower Tunnels", 280, 560, 140, 70),
-    corridor("t-tunnels", 280, 780, 100, 60),
-  ],
-  props: [
-    box(846, 126, 24, 24), // goose
-    box(648, 236, 46, 24), // car
-    box(736, 176, 30, 30), // default
-    box(124, 236, 44, 44), // big box
-    box(454, 560, 32, 32), // xbox
-    box(786, 600, 40, 24), // blue
-    box(270, 140, 40, 30), // back plat
+    r("t-spawn", "T Spawn", 285, 850, 200, 90, { spawn: "T" }),
+    r("outside-long", "Outside Long", 580, 700, 90, 140),
+    r("long-doors", "Long Doors", 680, 560, 60, 110),
+    r("long-a", "Long A", 840, 300, 110, 380),
+    r("a-site", "A Site", 690, 100, 240, 150, { site: "A" }),
+    r("short", "Short", 510, 375, 160, 55),
+    r("short-a", "", 615, 250, 65, 130),
+    r("mid", "Mid", 440, 440, 70, 380),
+    r("mid-doors", "Mid Doors", 430, 260, 80, 120),
+    r("ct-spawn", "CT Spawn", 555, 145, 105, 120, { spawn: "CT" }),
+    r("b-doors", "B Doors", 255, 120, 60, 140),
+    r("b-site", "B Site", 65, 60, 190, 180, { site: "B" }),
+    r("b-tunnels", "B Tunnels", 65, 400, 185, 110),
+    r("upper-tunnels", "Upper Tunnels", 90, 575, 180, 180),
+    r("lower-tunnels", "Lower Tunnels", 285, 380, 150, 60),
   ],
   callouts: [
-    { text: "Goose", x: 858, y: 168 },
-    { text: "Car", x: 671, y: 278 },
-    { text: "Xbox", x: 470, y: 612 },
-    { text: "Blue", x: 806, y: 642 },
-    { text: "Big box", x: 146, y: 300 },
-    { text: "Pit", x: 845, y: 300 },
+    { text: "Pit", x: 885, y: 640 },
+    { text: "Goose", x: 905, y: 120 },
+    { text: "Xbox", x: 480, y: 400 },
   ],
 };
 
-const BLANK: MapDef = { id: "blank", name: "Blank board", areas: [], props: [], callouts: [] };
-
-export const MAPS: Record<MapId, MapDef> = { mirage: MIRAGE, dust2: DUST2, blank: BLANK };
+export const MAPS: Record<MapId, MapDef> = {
+  mirage: MIRAGE,
+  dust2: DUST2,
+  inferno: { id: "inferno", name: "Inferno", traced: inferno, areas: basics({ A: [0.81, 0.69], B: [0.49, 0.22] }, [0.1, 0.67], [0.9, 0.35]), callouts: [] },
+  nuke: { id: "nuke", name: "Nuke (upper)", traced: nuke, areas: basics({ A: [0.58, 0.48] }, [0.19, 0.54], [0.82, 0.45]), callouts: [] },
+  ancient: { id: "ancient", name: "Ancient", traced: ancient, areas: basics({ A: [0.31, 0.25], B: [0.8, 0.4] }, [0.485, 0.87], [0.51, 0.17]), callouts: [] },
+  anubis: { id: "anubis", name: "Anubis", traced: anubis, areas: basics({ A: [0.755, 0.245], B: [0.325, 0.49] }, [0.47, 0.905], [0.42, 0.215]), callouts: [] },
+  train: { id: "train", name: "Train", traced: train, areas: basics({ A: [0.63, 0.49], B: [0.52, 0.76] }, [0.12, 0.25], [0.86, 0.77]), callouts: [] },
+  overpass: { id: "overpass", name: "Overpass", traced: overpass, areas: basics({ A: [0.49, 0.18], B: [0.69, 0.32] }, [0.66, 0.93], [0.43, 0.07]), callouts: [] },
+  blank: { id: "blank", name: "Blank board", traced: null, areas: [], callouts: [] },
+};
 export const MAP_IDS = Object.keys(MAPS) as MapId[];
 
 export function isMapId(v: unknown): v is MapId {
   return typeof v === "string" && v in MAPS;
 }
 
-/** The named area containing a point, if any (corridors excluded). */
+/** The named area containing a point, if any (unnamed connectors excluded). */
 export function areaAt(map: MapDef, x: number, y: number): Area | null {
-  return map.areas.find((a) => !a.corridor && x >= a.x && x <= a.x + a.w && y >= a.y && y <= a.y + a.h) ?? null;
+  return map.areas.find((a) => a.name && x >= a.x && x <= a.x + a.w && y >= a.y && y <= a.y + a.h) ?? null;
 }
 
 /** Centre of a named area, for templates. */

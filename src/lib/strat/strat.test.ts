@@ -200,7 +200,7 @@ describe("share links and validation", () => {
 
   it("rejects garbage and cleans up bad objects", () => {
     expect(decodeStrat("not-a-strat")).toBeNull();
-    expect(decodeStrat(compressToEncodedURIComponent(JSON.stringify({ v: 2, map: "nuke", side: "T" })))).toBeNull();
+    expect(decodeStrat(compressToEncodedURIComponent(JSON.stringify({ v: 2, map: "de_notamap", side: "T" })))).toBeNull();
     const s = parseStrat({
       v: 2,
       map: "dust2",

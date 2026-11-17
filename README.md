@@ -22,8 +22,10 @@ link that opens without an account.
 - **Editing**: undo/redo across steps (a drag or a burst of typing is one step), keyboard shortcuts
   (V, 1, 2, D, R, P, E, N, S, F, M, H, B, L, Space to play, Delete, Ctrl+Z, Ctrl+S).
 
-Maps are our own simplified layouts built from named areas, cover and callouts (`src/lib/maps`), not Valve's radar images, which
-are © Valve. Named areas also make it possible to check plans against demos later ("smoke landed in Jungle").
+Maps are our own vector drawings. `scripts/trace-maps.py` traces the walkable floor and cover from CS2 radar
+overviews you have locally and writes only polygon geometry to `src/lib/maps/traced/` (no image data; the radar
+images are never committed). Callout areas are placed on that geometry in `src/lib/maps/index.ts`: full callouts
+for Mirage and Dust II, bombsites and spawns for Inferno, Nuke (upper level), Ancient, Anubis, Train and Overpass.
 
 ## Not built yet
 
