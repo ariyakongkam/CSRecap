@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { CircleHelp, Copy, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Board } from "@/components/board";
@@ -13,6 +13,8 @@ import { TEMPLATES } from "@/lib/strat/templates";
 import { stratDuration } from "@/lib/strat/timeline";
 import { sceneOf, type Side, type Strat } from "@/lib/strat/types";
 import { MapCard } from "@/components/map-card";
+import { Welcome } from "@/components/welcome";
+import { loadPref, savePref } from "@/lib/strat/storage";
 
 /** The hero: the Mirage example playing on a loop, the way a team would see it. */
 function LiveDemo({ onOpen }: { onOpen: (s: Strat) => void }) {
@@ -60,8 +62,18 @@ export function Library() {
   const [side, setSide] = useState<Side>("T");
   const [error, setError] = useState<string | null>(null);
   const examples = useMemo(() => TEMPLATES.map((t) => ({ t, strat: t.build() })), []);
+  const [welcome, setWelcome] = useState(false);
 
-  useEffect(() => setStrats(listStrats()), []);
+  useEffect(() => {
+    setStrats(listStrats());
+    // First visit in this browser: introduce the app.
+    if (!loadPref("welcomed", false, (v): v is boolean => typeof v === "boolean")) setWelcome(true);
+  }, []);
+
+  function closeWelcome() {
+    savePref("welcomed", true);
+    setWelcome(false);
+  }
 
   function open(s: Strat) {
     if (!saveStrat(s)) {
@@ -75,10 +87,27 @@ export function Library() {
     <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
       <header className="flex items-center justify-between py-5">
         <Logo />
-        <a href="#new" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-muted hover:text-text">
-          New strat
-        </a>
+        <div className="flex items-center gap-1">
+          <a href="#new" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-muted hover:text-text">
+            New strat
+          </a>
+          <button type="button" className="btn btn-icon border-transparent bg-transparent" onClick={() => setWelcome(true)} aria-label="What can I do here?" title="What can I do here?">
+            <CircleHelp className="size-5" />
+          </button>
+        </div>
       </header>
+      <Welcome
+        open={welcome}
+        onClose={closeWelcome}
+        onExample={(s) => {
+          closeWelcome();
+          open(s);
+        }}
+        onBlank={() => {
+          closeWelcome();
+          open(createStrat("mirage", "T", "Mirage T strat"));
+        }}
+      />
 
       <section className="grid items-center gap-8 py-6 lg:grid-cols-[1fr_1.05fr] lg:gap-12 lg:py-10">
         <div>

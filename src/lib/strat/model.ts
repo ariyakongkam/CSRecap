@@ -1,10 +1,13 @@
 import { isMapId, type MapId } from "@/lib/maps";
 import { clamp, round1 } from "./geometry";
 import {
-  PEN_COLORS,
+  CONE_DEGREES,
+  CONE_LENGTH,
   STRAT_VERSION,
+  isHexColor,
   type BoardObject,
-  type PenColor,
+  type ConeWidth,
+  type DrawShape,
   type PlacedPlayer,
   type Pt,
   type Scene,
@@ -147,6 +150,11 @@ export function youtubeId(url: string): string | null {
 // ---------- validation (shared links and storage are untrusted) ----------
 
 const UTILITY: UtilityType[] = ["smoke", "flash", "molotov", "he"];
+const DRAW_SHAPES: DrawShape[] = ["free", "line", "arrow", "rect", "dashed", "dashed-arrow"];
+/** Pen colours saved by name before the colour picker existed. */
+const LEGACY_PEN: Record<string, string> = { chalk: "#ffffff", t: "#e8a33d", ct: "#5e9eff", red: "#ff4d4d", green: "#69db7c" };
+
+export const normAngle = (deg: number) => ((Math.round(deg) % 360) + 360) % 360;
 const MAX_OBJECTS = 400;
 const MAX_POINTS = 400;
 const MAX_STEPS = 12;
@@ -182,16 +190,7 @@ function parseObject(v: unknown): BoardObject | null {
       const p = pt(o);
       const n = num(o.n, 1, 5);
       if (!p || n === null || (o.team !== "T" && o.team !== "CT")) return null;
-      const facing = num(o.facing, -720, 720);
-      return {
-        id,
-        kind: "player",
-        team: o.team,
-        n: Math.round(n),
-        role: str(o.role, 24),
-        facing: facing === null ? null : ((Math.round(facing) % 360) + 360) % 360,
-        ...p,
-      };
+      return { id, kind: "player", team: o.team, n: Math.round(n), role: str(o.role, 24), ...p };
     }
     case "route": {
       const pts = points(o.points);
@@ -223,8 +222,30 @@ function parseObject(v: unknown): BoardObject | null {
     case "drawing": {
       const pts = points(o.points);
       if (pts.length < 2) return null;
-      const color = typeof o.color === "string" && o.color in PEN_COLORS ? (o.color as PenColor) : "chalk";
-      return { id, kind: "drawing", points: pts, color };
+      const shape: DrawShape = DRAW_SHAPES.includes(o.shape as DrawShape) ? (o.shape as DrawShape) : "free";
+      return {
+        id,
+        kind: "drawing",
+        shape,
+        points: shape === "free" ? pts : [pts[0], pts[pts.length - 1]],
+        color: isHexColor(o.color) ? o.color.toLowerCase() : (LEGACY_PEN[o.color as string] ?? "#ffffff"),
+        opacity: num(o.opacity, 0.1, 1) ?? 1,
+        width: num(o.width, 1, 20) ?? 4.5,
+      };
+    }
+    case "vision": {
+      const p = pt(o);
+      const angle = num(o.angle, -720, 720);
+      if (!p || angle === null) return null;
+      const cone: ConeWidth = typeof o.cone === "string" && o.cone in CONE_DEGREES ? (o.cone as ConeWidth) : "normal";
+      return {
+        id,
+        kind: "vision",
+        angle: normAngle(angle),
+        length: num(o.length, CONE_LENGTH.min, CONE_LENGTH.max) ?? CONE_LENGTH.default,
+        cone,
+        ...p,
+      };
     }
     case "lineup": {
       const p = pt(o);
@@ -236,8 +257,18 @@ function parseObject(v: unknown): BoardObject | null {
   }
 }
 
+/** Players used to carry their own view cone ("facing"); it is now a separate sight cone. */
+function legacyCones(raw: unknown[]): unknown[] {
+  return raw.flatMap((o) => {
+    if (!o || typeof o !== "object") return [o];
+    const r = o as Record<string, unknown>;
+    if (r.kind !== "player" || typeof r.facing !== "number") return [o];
+    return [o, { id: `${String(r.id).slice(0, 30)}-cone`, kind: "vision", x: r.x, y: r.y, angle: r.facing, length: 125, cone: "wide" }];
+  });
+}
+
 function parseObjects(v: unknown): BoardObject[] {
-  const objects = (Array.isArray(v) ? v : [])
+  const objects = legacyCones(Array.isArray(v) ? v : [])
     .slice(0, MAX_OBJECTS)
     .map(parseObject)
     .filter((x): x is BoardObject => x !== null);
@@ -303,9 +334,10 @@ export function compact(strat: Strat): Strat {
           case "drawing":
             return { ...o, points: o.points.map(r) };
           case "player":
-            return { ...o, ...r(o) };
           case "lineup":
             return { ...o, ...r(o) };
+          case "vision":
+            return { ...o, ...r(o), length: Math.round(o.length) };
           default:
             return { ...o, ...r(o), t: round1(o.t) };
         }

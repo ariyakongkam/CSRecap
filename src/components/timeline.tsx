@@ -1,6 +1,7 @@
 "use client";
 
-import { Bomb, Cloud, Eye, Flame, Footprints, Pause, Play, RotateCcw, Type, Zap } from "lucide-react";
+import { Eye, Footprints, Pause, Play, RotateCcw, Type } from "lucide-react";
+import { C4Icon, UtilityIcon } from "@/components/utility-icons";
 import { useEffect, useRef, useState } from "react";
 import { stratDuration, timelineEvents, type TimelineEvent } from "@/lib/strat/timeline";
 import type { Scene } from "@/lib/strat/types";
@@ -17,11 +18,9 @@ function EventIcon({ e }: { e: TimelineEvent }) {
   const c = "size-3.5";
   if (e.kind === "route") return <Footprints className={c} />;
   if (e.kind === "text") return <Type className={c} />;
-  if (e.kind === "bomb") return <Bomb className={c} />;
-  if (e.label === "smoke") return <Cloud className={c} />;
-  if (e.label === "flash") return <Zap className={c} />;
-  if (e.label === "molotov") return <Flame className={c} />;
-  return <Bomb className={c} />;
+  if (e.kind === "bomb") return <C4Icon className={c} />;
+  if (e.label === "smoke" || e.label === "flash" || e.label === "molotov" || e.label === "he") return <UtilityIcon type={e.label} className={c} />;
+  return <Footprints className={c} />;
 }
 
 export interface TimelineProps {

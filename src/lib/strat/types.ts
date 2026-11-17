@@ -2,7 +2,10 @@ import type { MapId } from "@/lib/maps";
 
 export type Side = "T" | "CT";
 export type UtilityType = "smoke" | "flash" | "molotov" | "he";
-export type PenColor = "chalk" | "t" | "ct" | "red" | "green";
+/** Pen strokes: freehand, or a shape from a start point to an end point. */
+export type DrawShape = "free" | "line" | "arrow" | "rect" | "dashed" | "dashed-arrow";
+/** Sight cones come in three widths. */
+export type ConeWidth = "wide" | "normal" | "narrow";
 
 export interface Pt {
   x: number;
@@ -18,8 +21,6 @@ export interface PlayerObject {
   n: number;
   /** Short role shown under the token, e.g. "Entry", "AWP", "Lurk". */
   role: string;
-  /** Where the player is looking, in degrees (0 = east, 90 = south). Null = no view cone. */
-  facing: number | null;
 }
 
 export interface PlacedPlayer extends PlayerObject, Pt {}
@@ -61,12 +62,29 @@ export interface BombObject extends Pt {
   t: number;
 }
 
-/** A freehand pen stroke. */
+/** A pen stroke. Freehand keeps every point; shapes keep [start, end]. */
 export interface DrawingObject {
   id: string;
   kind: "drawing";
+  shape: DrawShape;
   points: Pt[];
-  color: PenColor;
+  /** #rrggbb */
+  color: string;
+  /** 0.1–1 */
+  opacity: number;
+  /** Stroke width on the 1000-unit board. */
+  width: number;
+}
+
+/** A sight cone: where someone is looking, and how far. */
+export interface VisionObject extends Pt {
+  id: string;
+  kind: "vision";
+  /** Direction in degrees (0 = east, 90 = south). */
+  angle: number;
+  /** How far the cone reaches, in board units. */
+  length: number;
+  cone: ConeWidth;
 }
 
 /** A pin linking to a lineup video or image. */
@@ -78,7 +96,15 @@ export interface LineupObject extends Pt {
   url: string;
 }
 
-export type BoardObject = PlacedPlayer | RouteObject | UtilityObject | TextObject | BombObject | DrawingObject | LineupObject;
+export type BoardObject =
+  | PlacedPlayer
+  | RouteObject
+  | UtilityObject
+  | TextObject
+  | BombObject
+  | DrawingObject
+  | LineupObject
+  | VisionObject;
 
 /** One board in a strat's sequence, e.g. "Default", "Execute", "Post-plant". */
 export interface Step {
@@ -123,7 +149,7 @@ export const UTILITY_DURATION: Record<UtilityType, number> = {
 export const UTILITY_RADIUS: Record<UtilityType, number> = {
   smoke: 30,
   molotov: 22,
-  flash: 12,
+  flash: 16,
   he: 18,
 };
 
@@ -134,13 +160,40 @@ export const UTILITY_LABEL: Record<UtilityType, string> = {
   he: "HE grenade",
 };
 
-export const PEN_COLORS: Record<PenColor, { label: string; css: string }> = {
-  chalk: { label: "Chalk", css: "var(--chalk)" },
-  t: { label: "T orange", css: "var(--t)" },
-  ct: { label: "CT blue", css: "var(--ct)" },
-  red: { label: "Red", css: "var(--pen-red)" },
-  green: { label: "Green", css: "var(--pen-green)" },
+/** The pen's colour swatches. Any other colour can be picked too. */
+export const PEN_SWATCHES: { label: string; hex: string }[] = [
+  { label: "White", hex: "#ffffff" },
+  { label: "Black", hex: "#111111" },
+  { label: "Red", hex: "#ff4d4d" },
+  { label: "Yellow", hex: "#ffd43b" },
+  { label: "Green", hex: "#69db7c" },
+  { label: "Blue", hex: "#4dabf7" },
+];
+
+export const DRAW_SHAPE_LABEL: Record<DrawShape, string> = {
+  free: "Freehand",
+  line: "Line",
+  arrow: "Arrow",
+  rect: "Rectangle",
+  dashed: "Dashed line",
+  "dashed-arrow": "Dashed arrow",
 };
+
+export interface PenSettings {
+  shape: DrawShape;
+  color: string;
+  opacity: number;
+  width: number;
+}
+
+export const DEFAULT_PEN: PenSettings = { shape: "free", color: "#ffffff", opacity: 1, width: 5 };
+
+/** Opening angle of each cone width, in degrees. */
+export const CONE_DEGREES: Record<ConeWidth, number> = { wide: 100, normal: 60, narrow: 22 };
+export const CONE_LABEL: Record<ConeWidth, string> = { wide: "Wide sight", normal: "Normal sight", narrow: "Narrow sight" };
+export const CONE_LENGTH = { min: 40, max: 700, default: 160 };
+
+export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
 /** The step a scene is built from. */
 export function sceneOf(strat: Strat, step: Step): Scene {

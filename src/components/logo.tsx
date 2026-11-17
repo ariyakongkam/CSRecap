@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_NAME } from "@/lib/brand";
 
 /** Wordmark: a crosshair split by a route arrow. */
 export function Logo() {
@@ -9,7 +10,7 @@ export function Logo() {
         <path d="M14 1v6M14 21v6M1 14h6M21 14h6" stroke="var(--chalk)" strokeWidth="2" />
         <path d="M8 19l5-5 3 2 5-6" fill="none" stroke="var(--t)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      Execute
+      {APP_NAME}
     </Link>
   );
 }

@@ -197,3 +197,9 @@ body {
   --c4-wire-red: #e0483f;
   --c4-wire-blue: #4f86e8;
 }
+
+:root {
+  --icon-disc: #0b1117;
+  --cone: rgba(236, 229, 211, 0.18);
+  --cone-edge: rgba(236, 229, 211, 0.55);
+}

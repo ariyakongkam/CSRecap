@@ -1,53 +1,40 @@
-import type { Side } from "@/lib/strat/types";
-import { UTILITY_RADIUS, type BombObject, type LineupObject, type UtilityObject } from "@/lib/strat/types";
+import { UtilityShape } from "@/components/utility-icons";
+import { CONE_DEGREES, UTILITY_RADIUS, type BombObject, type LineupObject, type Side, type UtilityObject, type VisionObject } from "@/lib/strat/types";
 
 export const TEAM_COLOR: Record<Side, string> = { T: "var(--t)", CT: "var(--ct)" };
 
+const UTILITY_COLOR: Record<UtilityObject["type"], string> = {
+  smoke: "var(--smoke)",
+  flash: "var(--flash)",
+  molotov: "var(--molotov)",
+  he: "var(--he)",
+};
+
+/** A grenade on the board: its area, with the grenade's icon on a disc in the middle. */
 export function UtilityGlyph({ u, selected }: { u: UtilityObject; selected: boolean }) {
   const r = UTILITY_RADIUS[u.type];
-  const ring = selected ? <circle cx={u.x} cy={u.y} r={r + 7} fill="none" stroke="var(--select)" strokeWidth="3.5" /> : null;
-  switch (u.type) {
-    case "smoke":
-      return (
-        <g>
-          {ring}
-          <circle cx={u.x} cy={u.y} r={r} fill="var(--smoke)" fillOpacity="0.55" stroke="var(--smoke)" strokeWidth="2" />
-          <circle cx={u.x - 8} cy={u.y - 6} r={r * 0.45} fill="var(--smoke)" fillOpacity="0.5" />
-          <circle cx={u.x + 9} cy={u.y + 5} r={r * 0.4} fill="var(--smoke)" fillOpacity="0.45" />
-        </g>
-      );
-    case "molotov":
-      return (
-        <g>
-          {ring}
-          <circle cx={u.x} cy={u.y} r={r} fill="var(--molotov)" fillOpacity="0.35" stroke="var(--molotov)" strokeWidth="2.5" strokeDasharray="5 4" />
-          <path d={`M${u.x} ${u.y - 10}c6 7 7 11 0 17c-7-6-6-10 0-17z`} fill="var(--molotov)" />
-        </g>
-      );
-    case "flash": {
-      const rays = Array.from({ length: 8 }, (_, i) => {
-        const a = (i * Math.PI) / 4;
-        return `M${u.x + Math.cos(a) * (r + 2)} ${u.y + Math.sin(a) * (r + 2)}L${u.x + Math.cos(a) * (r + 9)} ${u.y + Math.sin(a) * (r + 9)}`;
-      }).join(" ");
-      return (
-        <g>
-          {ring}
-          <path d={rays} stroke="var(--flash)" strokeWidth="3" strokeLinecap="round" />
-          <circle cx={u.x} cy={u.y} r={r} fill="var(--flash)" stroke="var(--board-bg)" strokeWidth="2" />
-        </g>
-      );
-    }
-    case "he":
-      return (
-        <g>
-          {ring}
-          <circle cx={u.x} cy={u.y} r={r} fill="var(--he)" fillOpacity="0.25" stroke="var(--he)" strokeWidth="2.5" />
-          <circle cx={u.x} cy={u.y} r="6" fill="var(--he)" />
-        </g>
-      );
-  }
+  const color = UTILITY_COLOR[u.type];
+  const fill = u.type === "smoke" ? 0.5 : u.type === "flash" ? 0.28 : 0.3;
+  return (
+    <g>
+      {selected && <circle cx={u.x} cy={u.y} r={r + 7} fill="none" stroke="var(--select)" strokeWidth="3.5" />}
+      <circle
+        cx={u.x}
+        cy={u.y}
+        r={r}
+        fill={color}
+        fillOpacity={fill}
+        stroke={color}
+        strokeWidth="2"
+        strokeDasharray={u.type === "molotov" ? "5 4" : undefined}
+      />
+      <circle cx={u.x} cy={u.y} r="13" fill="var(--icon-disc)" stroke={color} strokeWidth="1.5" />
+      <g transform={`translate(${u.x - 9} ${u.y - 9}) scale(0.75)`} color={color}>
+        <UtilityShape type={u.type} />
+      </g>
+    </g>
+  );
 }
-
 
 /** The C4: a dark olive brick with a green display, a red light and two wires. */
 export function BombGlyph({ b, selected }: { b: BombObject; selected: boolean }) {
@@ -93,27 +80,31 @@ export function LineupGlyph({ l, selected }: { l: LineupObject; selected: boolea
   );
 }
 
-/** A view cone: where a player is looking. 90° wide. */
-export function VisionCone({ x, y, facing, team }: { x: number; y: number; facing: number; team: Side }) {
-  const R = 125;
-  const half = 45;
+/** The end of a sight cone's centre line: where its length handle sits. */
+export function coneTip(v: VisionObject): { x: number; y: number } {
+  const a = (v.angle * Math.PI) / 180;
+  return { x: v.x + v.length * Math.cos(a), y: v.y + v.length * Math.sin(a) };
+}
+
+/** A sight cone: where someone is looking and how far. Selected cones show their two drag handles. */
+export function VisionCone({ v, selected }: { v: VisionObject; selected: boolean }) {
+  const half = CONE_DEGREES[v.cone] / 2;
   const rad = (d: number) => (d * Math.PI) / 180;
-  const a = rad(facing - half);
-  const b = rad(facing + half);
-  const d = `M${x} ${y}L${x + R * Math.cos(a)} ${y + R * Math.sin(a)}A${R} ${R} 0 0 1 ${x + R * Math.cos(b)} ${y + R * Math.sin(b)}Z`;
+  const a = rad(v.angle - half);
+  const b = rad(v.angle + half);
+  const R = v.length;
+  const d = `M${v.x} ${v.y}L${v.x + R * Math.cos(a)} ${v.y + R * Math.sin(a)}A${R} ${R} 0 0 1 ${v.x + R * Math.cos(b)} ${v.y + R * Math.sin(b)}Z`;
+  const tip = coneTip(v);
   return (
-    <g pointerEvents="none">
-      <path d={d} fill={TEAM_COLOR[team]} fillOpacity="0.14" stroke={TEAM_COLOR[team]} strokeOpacity="0.55" strokeWidth="1.5" />
-      <line
-        x1={x}
-        y1={y}
-        x2={x + R * Math.cos(rad(facing))}
-        y2={y + R * Math.sin(rad(facing))}
-        stroke={TEAM_COLOR[team]}
-        strokeOpacity="0.7"
-        strokeWidth="2"
-        strokeDasharray="6 6"
-      />
+    <g>
+      <path d={d} fill="var(--cone)" stroke={selected ? "var(--select)" : "var(--cone-edge)"} strokeWidth={selected ? 2.5 : 1.5} />
+      <circle cx={v.x} cy={v.y} r="7" fill="var(--chalk)" stroke="var(--void)" strokeWidth="2" data-handle="origin" />
+      {selected && (
+        <>
+          <line x1={v.x} y1={v.y} x2={tip.x} y2={tip.y} stroke="var(--select)" strokeWidth="1.5" strokeDasharray="5 5" pointerEvents="none" />
+          <circle cx={tip.x} cy={tip.y} r="10" fill="var(--select)" stroke="var(--void)" strokeWidth="2.5" data-handle="tip" style={{ cursor: "grab" }} />
+        </>
+      )}
     </g>
   );
 }

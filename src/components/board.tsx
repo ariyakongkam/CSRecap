@@ -1,17 +1,20 @@
 "use client";
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { BombGlyph, LineupGlyph, TEAM_COLOR, UtilityGlyph, VisionCone } from "@/components/glyphs";
+import { BombGlyph, LineupGlyph, TEAM_COLOR, UtilityGlyph, VisionCone, coneTip } from "@/components/glyphs";
 import { MapLayer } from "@/components/map-layer";
 import { MAPS } from "@/lib/maps";
 import { clamp, pathData, simplify } from "@/lib/strat/geometry";
-import { enemyOf, newId, nextPlayerNumber, removeObject } from "@/lib/strat/model";
+import { enemyOf, newId, nextPlayerNumber, normAngle, removeObject } from "@/lib/strat/model";
 import { formatTime, nextRouteStart, playerEndPosition, playerPositionAt, visibilityAt, walkDuration } from "@/lib/strat/timeline";
 import {
-  PEN_COLORS,
+  CONE_LENGTH,
+  DEFAULT_PEN,
   UTILITY_RADIUS,
   type BoardObject,
-  type PenColor,
+  type ConeWidth,
+  type DrawingObject,
+  type PenSettings,
   type PlacedPlayer,
   type Pt,
   type RouteObject,
@@ -24,7 +27,9 @@ export type Tool =
   | "mate"
   | "enemy"
   | "route"
-  | "vision"
+  | "cone-wide"
+  | "cone-normal"
+  | "cone-narrow"
   | "pen"
   | "eraser"
   | "text"
@@ -40,7 +45,7 @@ export interface BoardProps {
   /** Seconds into the step; null = editing, everything shown. */
   time: number | null;
   tool?: Tool;
-  penColor?: PenColor;
+  pen?: PenSettings;
   selectedId?: string | null;
   readOnly?: boolean;
   onSelect?: (id: string | null) => void;
@@ -60,7 +65,8 @@ type Gesture =
   | { mode: "move"; id: string; start: Pt; orig: BoardObject; moved: boolean }
   | { mode: "draw"; points: Pt[]; player: string | null; team: Side | null }
   | { mode: "pen"; points: Pt[] }
-  | { mode: "vision"; id: string; started: boolean }
+  | { mode: "cone-new"; origin: Pt; cone: ConeWidth; end: Pt | null }
+  | { mode: "cone-tip"; id: string; started: boolean }
   | { mode: "erase"; started: boolean };
 
 const angleTo = (from: Pt, to: Pt) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
@@ -69,7 +75,7 @@ export function Board({
   scene,
   time,
   tool = "select",
-  penColor = "chalk",
+  pen = DEFAULT_PEN,
   selectedId = null,
   readOnly = false,
   onSelect,
@@ -82,6 +88,8 @@ export function Board({
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const [draft, setDraft] = useState<{ points: Pt[]; color: string } | null>(null);
+  const [penDraft, setPenDraft] = useState<DrawingObject | null>(null);
+  const [coneDraft, setConeDraft] = useState<{ origin: Pt; end: Pt; cone: ConeWidth } | null>(null);
   const map = MAPS[scene.map];
   const objects = scene.objects;
   const players = objects.filter((o): o is PlacedPlayer => o.kind === "player");
@@ -121,7 +129,7 @@ export function Board({
       onNotice?.(team === scene.side ? "All five teammates are already on the board." : "All five enemies are already on the board.");
       return;
     }
-    add({ id: newId(), kind: "player", team, n, role: "", facing: null, ...p });
+    add({ id: newId(), kind: "player", team, n, role: "", ...p });
   }
 
   function onBackgroundDown(e: ReactPointerEvent) {
@@ -145,14 +153,20 @@ export function Board({
       case "pen":
         capture(e);
         gesture.current = { mode: "pen", points: [p] };
-        setDraft({ points: [p], color: PEN_COLORS[penColor].css });
+        setPenDraft({ id: "draft", kind: "drawing", shape: pen.shape, points: [p, p], color: pen.color, opacity: pen.opacity, width: pen.width });
         return;
       case "eraser":
         gesture.current = { mode: "erase", started: false };
         return;
-      case "vision":
-        onNotice?.("Drag from a player towards where they should look.");
+      case "cone-wide":
+      case "cone-normal":
+      case "cone-narrow": {
+        capture(e);
+        const cone = tool.slice(5) as ConeWidth;
+        gesture.current = { mode: "cone-new", origin: p, cone, end: null };
+        setConeDraft({ origin: p, end: { x: p.x, y: p.y - CONE_LENGTH.default }, cone });
         return;
+      }
       case "text":
         add({ id: newId(), kind: "text", text: "Note", t: time ?? 0, ...p });
         return;
@@ -190,11 +204,9 @@ export function Board({
       setDraft({ points: [from], color: TEAM_COLOR[o.team] });
       return;
     }
-    if (tool === "vision" && o.kind === "player") {
+    if (tool.startsWith("cone-")) {
+      onBackgroundDown(e); // a cone can start on top of a player
       e.stopPropagation();
-      capture(e);
-      onSelect?.(o.id);
-      gesture.current = { mode: "vision", id: o.id, started: false };
       return;
     }
     if (tool !== "select") return; // placement tools place on top of objects
@@ -214,22 +226,40 @@ export function Board({
     const g = gesture.current;
     if (!g) return;
     const p = toBoard(e);
-    if (g.mode === "draw" || g.mode === "pen") {
+    if (g.mode === "draw") {
       const last = g.points[g.points.length - 1];
       if (Math.hypot(p.x - last.x, p.y - last.y) < 3) return;
       g.points.push(p);
       setDraft((d) => (d ? { ...d, points: [...g.points] } : d));
       return;
     }
-    if (g.mode === "vision") {
-      const pl = playerById.get(g.id);
-      if (!pl || Math.hypot(p.x - pl.x, p.y - pl.y) < 8) return;
+    if (g.mode === "pen") {
+      if (pen.shape === "free") {
+        const last = g.points[g.points.length - 1];
+        if (Math.hypot(p.x - last.x, p.y - last.y) < 2.5) return;
+        g.points.push(p);
+      } else {
+        g.points = [g.points[0], p];
+      }
+      setPenDraft((d) => (d ? { ...d, points: [...g.points] } : d));
+      return;
+    }
+    if (g.mode === "cone-new") {
+      if (Math.hypot(p.x - g.origin.x, p.y - g.origin.y) < 8) return;
+      g.end = p;
+      setConeDraft({ origin: g.origin, end: p, cone: g.cone });
+      return;
+    }
+    if (g.mode === "cone-tip") {
+      const v = objects.find((o) => o.id === g.id);
+      if (!v || v.kind !== "vision") return;
       if (!g.started) {
         g.started = true;
         onCheckpoint?.();
       }
-      const facing = Math.round(angleTo(pl, p));
-      onLive?.(objects.map((o) => (o.id === g.id && o.kind === "player" ? { ...o, facing } : o)));
+      const length = clamp(Math.hypot(p.x - v.x, p.y - v.y), CONE_LENGTH.min, CONE_LENGTH.max);
+      const angle = normAngle(angleTo(v, p));
+      onLive?.(objects.map((o) => (o.id === g.id ? { ...v, angle, length: Math.round(length) } : o)));
       return;
     }
     if (g.mode !== "move") return;
@@ -248,9 +278,19 @@ export function Board({
     gesture.current = null;
     if (!g) return;
     if (g.mode === "pen") {
-      setDraft(null);
-      const points = simplify(g.points, 1.5);
-      if (points.length >= 2) add({ id: newId(), kind: "drawing", points, color: penColor });
+      setPenDraft(null);
+      const points = pen.shape === "free" ? simplify(g.points, 1.2) : g.points;
+      const long = points.length >= 2 && Math.hypot(points[0].x - points.at(-1)!.x, points[0].y - points.at(-1)!.y) >= 6;
+      // Strokes aren't selected after drawing, so the next stroke can follow straight away.
+      if (long) onCommit?.([...objects, { id: newId(), kind: "drawing", shape: pen.shape, points, color: pen.color, opacity: pen.opacity, width: pen.width }]);
+      return;
+    }
+    if (g.mode === "cone-new") {
+      setConeDraft(null);
+      // A click without dragging places a cone pointing up at the default length.
+      const end = g.end ?? { x: g.origin.x, y: g.origin.y - CONE_LENGTH.default };
+      const length = clamp(Math.hypot(end.x - g.origin.x, end.y - g.origin.y), CONE_LENGTH.min, CONE_LENGTH.max);
+      add({ id: newId(), kind: "vision", ...g.origin, angle: normAngle(angleTo(g.origin, end)), length: Math.round(length), cone: g.cone });
       return;
     }
     if (g.mode !== "draw") return;
@@ -289,6 +329,13 @@ export function Board({
 
   const cursor = readOnly ? "default" : tool === "select" ? "default" : tool === "eraser" ? "cell" : "crosshair";
   const interactive = { cursor: readOnly ? "default" : tool === "select" ? "move" : tool === "eraser" ? "cell" : undefined };
+  function onConeTipDown(e: ReactPointerEvent, id: string) {
+    if (readOnly || e.button !== 0) return;
+    e.stopPropagation();
+    capture(e);
+    gesture.current = { mode: "cone-tip", id, started: false };
+  }
+
   const handlers = (o: BoardObject) => ({
     onPointerDown: (e: ReactPointerEvent) => onObjectDown(e, o),
     onPointerEnter: (e: ReactPointerEvent) => onObjectEnter(e, o),
@@ -321,14 +368,11 @@ export function Board({
       {objects.map((o) =>
         o.kind === "drawing" ? (
           <g key={o.id} {...handlers(o)} style={interactive}>
-            <path d={pathData(o.points)} stroke="transparent" strokeWidth="16" fill="none" />
-            {o.id === selectedId && (
-              <path d={pathData(o.points)} stroke="var(--select)" strokeWidth="10" fill="none" opacity="0.3" strokeLinecap="round" strokeLinejoin="round" />
-            )}
-            <path d={pathData(o.points)} stroke={PEN_COLORS[o.color].css} strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Drawing d={o} selected={o.id === selectedId} />
           </g>
         ) : null,
       )}
+      {penDraft && <Drawing d={penDraft} selected={false} />}
 
       {/* routes */}
       {objects.map((r) => {
@@ -375,12 +419,41 @@ export function Board({
         );
       })}
 
-      {/* view cones under the players */}
-      {players.map((p) => {
-        if (p.facing === null) return null;
-        const pos = time === null ? p : playerPositionAt(scene, p, time);
-        return <VisionCone key={`${p.id}-cone`} x={pos.x} y={pos.y} facing={p.facing} team={p.team} />;
+      {/* sight cones under the players */}
+      {objects.map((v) => {
+        if (v.kind !== "vision") return null;
+        const selected = v.id === selectedId;
+        return (
+          <g key={v.id} {...handlers(v)} style={interactive}>
+            <VisionCone v={v} selected={selected} />
+            {selected && !readOnly && (
+              <circle
+                cx={coneTip(v).x}
+                cy={coneTip(v).y}
+                r="16"
+                fill="transparent"
+                onPointerDown={(e) => onConeTipDown(e, v.id)}
+                style={{ cursor: "grab" }}
+              >
+                <title>Drag to aim and to change how far they see</title>
+              </circle>
+            )}
+          </g>
+        );
       })}
+      {coneDraft && (
+        <VisionCone
+          v={{
+            id: "draft",
+            kind: "vision",
+            ...coneDraft.origin,
+            angle: angleTo(coneDraft.origin, coneDraft.end),
+            length: clamp(Math.hypot(coneDraft.end.x - coneDraft.origin.x, coneDraft.end.y - coneDraft.origin.y), CONE_LENGTH.min, CONE_LENGTH.max),
+            cone: coneDraft.cone,
+          }}
+          selected={false}
+        />
+      )}
 
       {/* bomb */}
       {objects.map((b) => {
@@ -442,7 +515,7 @@ export function Board({
             key={p.id}
             transform={`translate(${pos.x} ${pos.y})`}
             {...handlers(p)}
-            style={{ cursor: readOnly ? "default" : tool === "route" || tool === "vision" ? "crosshair" : tool === "eraser" ? "cell" : "move" }}
+            style={{ cursor: readOnly ? "default" : tool === "route" || tool.startsWith("cone-") ? "crosshair" : tool === "eraser" ? "cell" : "move" }}
           >
             {enemy ? (
               <>
@@ -490,5 +563,79 @@ function TimeTag({ x, y, label }: { x: number; y: number; label: string }) {
         {label}
       </text>
     </g>
+  );
+}
+
+/** One pen stroke: freehand, a straight line, an arrow, a rectangle, dashed or not. */
+function Drawing({ d, selected }: { d: DrawingObject; selected: boolean }) {
+  const [a, b] = [d.points[0], d.points[d.points.length - 1]];
+  const dashed = d.shape === "dashed" || d.shape === "dashed-arrow";
+  const arrow = d.shape === "arrow" || d.shape === "dashed-arrow";
+  const common = {
+    stroke: d.color,
+    strokeOpacity: d.opacity,
+    strokeWidth: d.width,
+    fill: "none",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    strokeDasharray: dashed ? `${d.width * 2.4} ${d.width * 2}` : undefined,
+  };
+  let shape: React.ReactNode;
+  let hit: React.ReactNode;
+  if (d.shape === "free") {
+    shape = <path d={pathData(d.points)} {...common} />;
+    hit = <path d={pathData(d.points)} stroke="transparent" strokeWidth={Math.max(16, d.width + 10)} fill="none" />;
+  } else if (d.shape === "rect") {
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    const w = Math.abs(a.x - b.x);
+    const h = Math.abs(a.y - b.y);
+    shape = <rect x={x} y={y} width={w} height={h} rx="3" {...common} />;
+    hit = <rect x={x} y={y} width={w} height={h} stroke="transparent" strokeWidth={Math.max(16, d.width + 10)} fill="none" />;
+  } else {
+    // Stop the line short of the tip so the arrowhead stays sharp.
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const head = arrow ? Math.min(len * 0.6, 10 + d.width * 2.6) : 0;
+    const ux = (b.x - a.x) / len;
+    const uy = (b.y - a.y) / len;
+    const end = { x: b.x - ux * head * 0.7, y: b.y - uy * head * 0.7 };
+    shape = (
+      <>
+        <line x1={a.x} y1={a.y} x2={end.x} y2={end.y} {...common} />
+        {arrow && (
+          <polygon
+            points={`${b.x},${b.y} ${b.x - ux * head - uy * head * 0.55},${b.y - uy * head + ux * head * 0.55} ${b.x - ux * head + uy * head * 0.55},${b.y - uy * head - ux * head * 0.55}`}
+            fill={d.color}
+            fillOpacity={d.opacity}
+          />
+        )}
+      </>
+    );
+    hit = <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={Math.max(16, d.width + 10)} />;
+  }
+  return (
+    <>
+      {hit}
+      {selected && (
+        <g opacity="0.35">
+          {d.shape === "free" ? (
+            <path d={pathData(d.points)} stroke="var(--select)" strokeWidth={d.width + 8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          ) : d.shape === "rect" ? (
+            <rect
+              x={Math.min(a.x, b.x)}
+              y={Math.min(a.y, b.y)}
+              width={Math.abs(a.x - b.x)}
+              height={Math.abs(a.y - b.y)}
+              stroke="var(--select)"
+              strokeWidth={d.width + 8}
+              fill="none"
+            />
+          ) : (
+            <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--select)" strokeWidth={d.width + 8} strokeLinecap="round" />
+          )}
+        </g>
+      )}
+      {shape}
+    </>
   );
 }

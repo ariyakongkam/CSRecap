@@ -26,7 +26,7 @@ function scene(objects: BoardObject[] = []): Scene {
 }
 
 function player(over: Partial<PlacedPlayer> = {}): PlacedPlayer {
-  return { id: "p1", kind: "player", team: "T", n: 1, role: "Entry", facing: null, x: 100, y: 100, ...over };
+  return { id: "p1", kind: "player", team: "T", n: 1, role: "Entry", x: 100, y: 100, ...over };
 }
 
 function route(id: string, playerId: string | null, points: [number, number][], t: number, duration: number): RouteObject {
@@ -118,7 +118,7 @@ describe("editing", () => {
 
   it("starts the next step where everyone ended, without routes or grenades", () => {
     const step = newStep("Execute", [
-      player({ facing: 90 }),
+      player(),
       player({ id: "e1", team: "CT", n: 1, x: 500, y: 500 }),
       route("r1", "p1", [[100, 100], [200, 100]], 0, 2),
       route("r2", "p1", [[200, 100], [300, 300]], 5, 2),
@@ -128,7 +128,7 @@ describe("editing", () => {
     const next = continueStep(step, "Post-plant");
     const players = next.objects.filter((o): o is PlacedPlayer => o.kind === "player");
     expect(next.name).toBe("Post-plant");
-    expect(players.find((p) => p.n === 1 && p.team === "T")).toMatchObject({ x: 300, y: 300, facing: 90 });
+    expect(players.find((p) => p.n === 1 && p.team === "T")).toMatchObject({ x: 300, y: 300 });
     expect(players.find((p) => p.team === "CT")).toMatchObject({ x: 500, y: 500 });
     expect(next.objects.some((o) => o.kind === "route" || o.kind === "utility")).toBe(false);
     expect(next.objects.find((o) => o.kind === "bomb")).toMatchObject({ t: 0, x: 400 });
@@ -195,7 +195,7 @@ describe("share links and validation", () => {
     const s = parseStrat(old)!;
     expect(s.v).toBe(2);
     expect(s.steps).toHaveLength(1);
-    expect(s.steps[0].objects[0]).toMatchObject({ kind: "player", facing: null });
+    expect(s.steps[0].objects[0]).toMatchObject({ kind: "player" });
   });
 
   it("rejects garbage and cleans up bad objects", () => {
@@ -211,7 +211,7 @@ describe("share links and validation", () => {
           id: "s1",
           name: "One",
           objects: [
-            { id: "a", kind: "player", team: "CT", n: 9, role: "AWP", facing: 450, x: 5000, y: 10 },
+            { id: "a", kind: "player", team: "CT", n: 9, role: "AWP", x: 5000, y: 10 },
             { id: "b", kind: "route", player: "ghost", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], t: 0, duration: 2 },
             { id: "c", kind: "utility", type: "nuke", x: 0, y: 0, t: 0 },
             { id: "d", kind: "text", text: "", x: 0, y: 0, t: 0 },
@@ -232,10 +232,56 @@ describe("share links and validation", () => {
     const p = objects[0] as PlacedPlayer;
     expect(p.n).toBe(5);
     expect(p.x).toBe(1050);
-    expect(p.facing).toBe(90);
     expect((objects[1] as RouteObject).player).toBeNull(); // pointed at a player that doesn't exist
     expect(objects[3]).toMatchObject({ url: "" });
-    expect(objects[4]).toMatchObject({ color: "chalk" });
+    expect(objects[4]).toMatchObject({ color: "#ffffff" });
+  });
+});
+
+describe("pen and sight cones", () => {
+  it("turns an old player view cone into a sight cone where the player stands", () => {
+    const s = parseStrat({
+      v: 2,
+      map: "mirage",
+      side: "T",
+      steps: [{ id: "s", name: "S", objects: [{ id: "p", kind: "player", team: "T", n: 1, role: "", facing: 450, x: 10, y: 20 }] }],
+    })!;
+    const [p, cone] = s.steps[0].objects;
+    expect(p).not.toHaveProperty("facing");
+    expect(cone).toMatchObject({ kind: "vision", x: 10, y: 20, angle: 90 });
+  });
+
+  it("reads old named pen colours and keeps new pen settings in range", () => {
+    const s = parseStrat({
+      v: 2,
+      map: "mirage",
+      side: "T",
+      steps: [
+        {
+          id: "s",
+          name: "S",
+          objects: [
+            { id: "a", kind: "drawing", color: "red", points: [{ x: 0, y: 0 }, { x: 5, y: 5 }] },
+            { id: "b", kind: "drawing", shape: "arrow", color: "#ABCDEF", opacity: 7, width: 99, points: [{ x: 0, y: 0 }, { x: 5, y: 5 }, { x: 9, y: 9 }] },
+            { id: "c", kind: "vision", x: 1, y: 2, angle: -90, length: 99999, cone: "huge" },
+          ],
+        },
+      ],
+    })!;
+    const [a, b, c] = s.steps[0].objects;
+    expect(a).toMatchObject({ shape: "free", color: "#ff4d4d", opacity: 1 });
+    expect(b).toMatchObject({ shape: "arrow", color: "#abcdef", opacity: 1, width: 20, points: [{ x: 0, y: 0 }, { x: 9, y: 9 }] });
+    expect(c).toMatchObject({ angle: 270, length: 700, cone: "normal" });
+  });
+
+  it("gives every example's sight cones a valid width and reach", () => {
+    for (const t of TEMPLATES) {
+      for (const step of t.build().steps) {
+        for (const o of step.objects) {
+          if (o.kind === "vision") expect(o.length).toBeGreaterThanOrEqual(40);
+        }
+      }
+    }
   });
 });
 

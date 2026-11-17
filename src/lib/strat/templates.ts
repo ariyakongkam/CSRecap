@@ -44,14 +44,17 @@ function builder(map: MapId, side: Side, name: string) {
       step = newStep(n);
       strat.steps.push(step);
     },
+    /** A teammate; with `facing`, a sight cone where they look. */
     player(n: number, role: string, pos: Pt, facing: number | null = null): PlacedPlayer {
-      const p: PlacedPlayer = { id: newId(), kind: "player", team: side, n, role, facing, ...pos };
+      const p: PlacedPlayer = { id: newId(), kind: "player", team: side, n, role, ...pos };
       add(p);
+      if (facing !== null) add({ id: newId(), kind: "vision", angle: facing, length: 150, cone: "normal", ...pos });
       return p;
     },
     enemy(n: number, pos: Pt, facing: number | null = null): PlacedPlayer {
-      const p: PlacedPlayer = { id: newId(), kind: "player", team: enemyOf(side), n, role: "", facing, ...pos };
+      const p: PlacedPlayer = { id: newId(), kind: "player", team: enemyOf(side), n, role: "", ...pos };
       add(p);
+      if (facing !== null) add({ id: newId(), kind: "vision", angle: facing, length: 150, cone: "wide", ...pos });
       return p;
     },
     /** The player with number n on our side in the current step. */

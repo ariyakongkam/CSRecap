@@ -1,9 +1,10 @@
 "use client";
 
-import { Bomb, Cloud, Eraser, Flame, MapPin, MousePointer2, Pencil, Radar, Spline, Type, Zap } from "lucide-react";
+import { Eraser, MapPin, MousePointer2, Pencil, Spline, Type } from "lucide-react";
 import { Fragment } from "react";
 import { enemyOf } from "@/lib/strat/model";
-import { PEN_COLORS, type PenColor, type Side } from "@/lib/strat/types";
+import { C4Icon, UtilityIcon } from "@/components/utility-icons";
+import { CONE_DEGREES, type ConeWidth, type Side } from "@/lib/strat/types";
 import type { Tool } from "./board";
 
 interface ToolDef {
@@ -23,6 +24,22 @@ const token = (team: Side, enemy: boolean) => (
   </span>
 );
 
+/** A fan the width of the cone it places, like the cone itself seen from above. */
+function ConeIcon({ cone }: { cone: ConeWidth }) {
+  const half = (CONE_DEGREES[cone] / 2) * (Math.PI / 180);
+  const R = 17;
+  const cx = 12;
+  const cy = 21;
+  const a = -Math.PI / 2 - half;
+  const b = -Math.PI / 2 + half;
+  const d = `M${cx} ${cy}L${cx + R * Math.cos(a)} ${cy + R * Math.sin(a)}A${R} ${R} 0 0 1 ${cx + R * Math.cos(b)} ${cy + R * Math.sin(b)}Z`;
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+      <path d={d} fill="currentColor" />
+    </svg>
+  );
+}
+
 /** Tools in groups: select · players · drawing · grenades · objects. */
 function groups(side: Side): ToolDef[][] {
   const enemy = enemyOf(side);
@@ -31,7 +48,12 @@ function groups(side: Side): ToolDef[][] {
     [
       { id: "mate", label: `Teammate (${side})`, key: "1", icon: token(side, false) },
       { id: "enemy", label: `Enemy (${enemy})`, key: "2", icon: token(enemy, true) },
-      { id: "vision", label: "Where they look", key: "D", icon: <Radar className="size-5" /> },
+
+    ],
+    [
+      { id: "cone-wide", label: "Wide sight", key: "Z", icon: <ConeIcon cone="wide" /> },
+      { id: "cone-normal", label: "Normal sight", key: "X", icon: <ConeIcon cone="normal" /> },
+      { id: "cone-narrow", label: "Narrow sight", key: "C", icon: <ConeIcon cone="narrow" /> },
     ],
     [
       { id: "route", label: "Route", key: "R", icon: <Spline className="size-5" /> },
@@ -40,23 +62,17 @@ function groups(side: Side): ToolDef[][] {
       { id: "text", label: "Note", key: "N", icon: <Type className="size-5" /> },
     ],
     [
-      { id: "smoke", label: "Smoke", key: "S", icon: <Cloud className="size-5" /> },
-      { id: "flash", label: "Flash", key: "F", icon: <Zap className="size-5" /> },
-      { id: "molotov", label: "Molotov", key: "M", icon: <Flame className="size-5" /> },
-      { id: "he", label: "HE grenade", key: "H", icon: <Bomb className="size-5" /> },
+      { id: "smoke", label: "Smoke", key: "S", icon: <UtilityIcon type="smoke" /> },
+      { id: "flash", label: "Flash", key: "F", icon: <UtilityIcon type="flash" /> },
+      { id: "molotov", label: "Molotov", key: "M", icon: <UtilityIcon type="molotov" /> },
+      { id: "he", label: "HE grenade", key: "H", icon: <UtilityIcon type="he" /> },
     ],
     [
       {
         id: "bomb",
         label: "Bomb (C4)",
         key: "B",
-        icon: (
-          <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-            <rect x="2.5" y="6" width="19" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-            <rect x="5" y="8.5" width="8" height="3.5" rx="0.5" fill="currentColor" />
-            <circle cx="17.5" cy="10" r="1.4" fill="currentColor" />
-          </svg>
-        ),
+        icon: <C4Icon />,
       },
       { id: "lineup", label: "Lineup link", key: "L", icon: <MapPin className="size-5" /> },
     ],
@@ -65,29 +81,16 @@ function groups(side: Side): ToolDef[][] {
 
 export const TOOL_KEYS: Record<string, Tool> = Object.fromEntries(groups("T").flat().map((t) => [t.key.toLowerCase(), t.id]));
 
-export function Toolbar({
-  tool,
-  onTool,
-  side,
-  penColor,
-  onPenColor,
-}: {
-  tool: Tool;
-  onTool: (t: Tool) => void;
-  side: Side;
-  penColor: PenColor;
-  onPenColor: (c: PenColor) => void;
-}) {
+export function Toolbar({ tool, onTool, side }: { tool: Tool; onTool: (t: Tool) => void; side: Side }) {
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
       <div
         role="toolbar"
         aria-label="Board tools"
-        className="flex items-center gap-1 overflow-x-auto rounded-xl border border-line bg-panel p-1.5 lg:flex-col lg:overflow-visible"
+        className="flex items-center gap-1 overflow-x-auto rounded-xl border border-line bg-panel p-1.5 lg:grid lg:grid-cols-2 lg:overflow-visible"
       >
         {groups(side).map((group, gi) => (
           <Fragment key={gi}>
-            {gi > 0 && <span aria-hidden="true" className="mx-0.5 h-7 w-px shrink-0 bg-line lg:mx-0 lg:my-0.5 lg:h-px lg:w-7" />}
+            {gi > 0 && <span aria-hidden="true" className="mx-0.5 h-7 w-px shrink-0 bg-line lg:col-span-2 lg:mx-1 lg:my-0.5 lg:h-px lg:w-auto" />}
             {group.map((t) => (
               <button
                 key={t.id}
@@ -114,26 +117,6 @@ export function Toolbar({
           </Fragment>
         ))}
       </div>
-
-      {tool === "pen" && (
-        <div role="radiogroup" aria-label="Pen colour" className="flex gap-1 rounded-xl border border-line bg-panel p-1.5 lg:flex-col">
-          {(Object.keys(PEN_COLORS) as PenColor[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              role="radio"
-              aria-checked={penColor === c}
-              aria-label={PEN_COLORS[c].label}
-              title={PEN_COLORS[c].label}
-              onClick={() => onPenColor(c)}
-              className={`grid size-11 place-items-center rounded-lg ${penColor === c ? "bg-panel-2 ring-2 ring-chalk" : "hover:bg-panel-2"}`}
-            >
-              <span className="size-5 rounded-full ring-2 ring-black/40" style={{ background: PEN_COLORS[c].css }} />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -145,12 +128,14 @@ export function toolHint(tool: Tool): string {
       return "Click to place the next teammate.";
     case "enemy":
       return "Click to place an enemy. Enemies are square.";
-    case "vision":
-      return "Drag from a player towards where they should look.";
+    case "cone-wide":
+    case "cone-normal":
+    case "cone-narrow":
+      return "Drag from where someone stands towards where they look. Drag the cone's handle to change how far.";
     case "route":
       return "Drag from a player to draw their route.";
     case "pen":
-      return "Draw freely on the map.";
+      return "Draw on the map. Pick the type, colour and thickness under Tools on the right.";
     case "eraser":
       return "Click or drag over anything to erase it.";
     case "text":

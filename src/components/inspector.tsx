@@ -5,13 +5,15 @@ import { MAPS, areaAt } from "@/lib/maps";
 import { round1 } from "@/lib/strat/geometry";
 import { removeObject, safeUrl, youtubeId } from "@/lib/strat/model";
 import { routesOf } from "@/lib/strat/timeline";
+import type { Tool } from "@/components/board";
+import { ConeControls, PenControls } from "@/components/tool-options";
 import {
-  PEN_COLORS,
+  CONE_LABEL,
   UTILITY_DURATION,
   UTILITY_LABEL,
   type BoardObject,
   type LineupObject,
-  type PenColor,
+  type PenSettings,
   type PlacedPlayer,
   type Scene,
   type Side,
@@ -27,6 +29,9 @@ interface Props {
   onStrat: (next: Strat) => void;
   onSelect: (id: string | null) => void;
   onPickMap: () => void;
+  tool: Tool;
+  pen: PenSettings;
+  onPen: (pen: PenSettings) => void;
 }
 
 function NumberField({
@@ -68,11 +73,20 @@ function NumberField({
   );
 }
 
-const COMPASS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
-
-export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap }: Props) {
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen }: Props) {
   const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
+
+  // While drawing, the panel is the pen's settings (like a paint program), whatever is selected.
+  if (tool === "pen") {
+    return (
+      <div className="space-y-4">
+        <h2 className="font-display text-xl font-semibold">Tools: pen</h2>
+        <PenControls value={pen} onChange={onPen} />
+        <p className="text-sm text-muted">To change a stroke you already drew, pick the select tool (V) and click it.</p>
+      </div>
+    );
+  }
 
   if (selected) {
     const at =
@@ -116,34 +130,6 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
                 onChange={(e) => update({ ...selected, role: e.target.value })}
               />
             </label>
-            <fieldset>
-              <legend className="label">Where they look</legend>
-              {selected.facing === null ? (
-                <button type="button" className="btn w-full" onClick={() => update({ ...selected, facing: selected.team === "T" ? 180 : 0 })}>
-                  Add view cone
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min={0}
-                    max={359}
-                    value={selected.facing}
-                    onChange={(e) => update({ ...selected, facing: Number(e.target.value) })}
-                    aria-label="View direction in degrees"
-                    aria-valuetext={COMPASS[Math.round(selected.facing / 45) % 8]}
-                    className="w-full accent-[var(--chalk)]"
-                  />
-                  <div className="flex items-center justify-between text-sm text-muted">
-                    <span>Facing {COMPASS[Math.round(selected.facing / 45) % 8]}</span>
-                    <button type="button" className="btn" onClick={() => update({ ...selected, facing: null })}>
-                      Remove cone
-                    </button>
-                  </div>
-                </div>
-              )}
-              <p className="mt-2 text-sm text-muted">Or pick the radar tool (D) and drag from a player to aim the cone.</p>
-            </fieldset>
             {selected.team === strat.side && (
               <p className="text-sm text-muted">
                 {routesOf(scene, selected.id).length === 0
@@ -208,24 +194,21 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
         )}
 
         {selected.kind === "drawing" && (
-          <fieldset>
-            <legend className="label">Colour</legend>
-            <div className="flex gap-2">
-              {(Object.keys(PEN_COLORS) as PenColor[]).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-pressed={selected.color === c}
-                  aria-label={PEN_COLORS[c].label}
-                  title={PEN_COLORS[c].label}
-                  onClick={() => update({ ...selected, color: c })}
-                  className={`grid size-11 place-items-center rounded-lg border ${selected.color === c ? "border-chalk" : "border-line"}`}
-                >
-                  <span className="size-5 rounded-full" style={{ background: PEN_COLORS[c].css }} />
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <PenControls
+            editing
+            value={{ shape: selected.shape, color: selected.color, opacity: selected.opacity, width: selected.width }}
+            onChange={(v) =>
+              update({
+                ...selected,
+                ...v,
+                points: v.shape === "free" ? selected.points : [selected.points[0], selected.points[selected.points.length - 1]],
+              })
+            }
+          />
+        )}
+
+        {selected.kind === "vision" && (
+          <ConeControls cone={selected.cone} length={selected.length} onChange={(v) => update({ ...selected, ...v })} />
         )}
 
         {selected.kind === "lineup" && <LineupFields key={selected.id} lineup={selected} onChange={update} />}
@@ -371,6 +354,8 @@ function describe(o: BoardObject, scene: Scene): string {
       return "Bomb (C4)";
     case "drawing":
       return "Pen drawing";
+    case "vision":
+      return CONE_LABEL[o.cone];
     case "lineup":
       return "Lineup";
   }

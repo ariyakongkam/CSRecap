@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed, Big_Shoulders_Stencil } from "next/font/google";
+import { APP_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const body = Barlow({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
@@ -7,7 +8,7 @@ const condensed = Barlow_Condensed({ subsets: ["latin"], weight: ["500", "600", 
 const stencil = Big_Shoulders_Stencil({ subsets: ["latin"], weight: ["800"], variable: "--font-stencil", adjustFontFallback: false });
 
 export const metadata: Metadata = {
-  title: { default: "Execute: tactics board", template: "%s · Execute" },
+  title: { default: `${APP_NAME}: CS2 tactics board`, template: `%s · ${APP_NAME}` },
   description: "Plan executes, utility and timing on a 2D board, then share them with your team in one link.",
 };
 

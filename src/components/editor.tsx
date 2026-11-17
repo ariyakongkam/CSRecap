@@ -18,14 +18,28 @@ import * as H from "@/lib/strat/history";
 import { continueStep, move, newStep, removeObject } from "@/lib/strat/model";
 import { shareUrl } from "@/lib/strat/share";
 import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
-import { PEN_COLORS, sceneOf, type BoardObject, type PenColor, type Strat } from "@/lib/strat/types";
+import { DEFAULT_PEN, isHexColor, sceneOf, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
 
 type SaveState = { status: "saved" | "saving" | "failed"; at: Date | null };
 type Confirm = "clear" | "delete" | null;
 
 const TOOLS = new Set<string>(Object.values(TOOL_KEYS));
 const isTool = (v: unknown): v is Tool => typeof v === "string" && TOOLS.has(v);
-const isPen = (v: unknown): v is PenColor => typeof v === "string" && v in PEN_COLORS;
+const SHAPES: DrawShape[] = ["free", "line", "arrow", "rect", "dashed", "dashed-arrow"];
+const isPen = (v: unknown): v is PenSettings => {
+  if (!v || typeof v !== "object") return false;
+  const p = v as Record<string, unknown>;
+  return (
+    SHAPES.includes(p.shape as DrawShape) &&
+    isHexColor(p.color) &&
+    typeof p.opacity === "number" &&
+    p.opacity >= 0.1 &&
+    p.opacity <= 1 &&
+    typeof p.width === "number" &&
+    p.width >= 1 &&
+    p.width <= 16
+  );
+};
 const isBool = (v: unknown): v is boolean => typeof v === "boolean";
 const isIndex = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
@@ -35,7 +49,7 @@ export function Editor({ id }: { id: string }) {
   const [missing, setMissing] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [tool, setTool] = useState<Tool>("select");
-  const [penColor, setPenColor] = useState<PenColor>("chalk");
+  const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [time, setTime] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -56,7 +70,7 @@ export function Editor({ id }: { id: string }) {
     setHistory(H.initHistory(s));
     setStepIndex(Math.min(loadPref(`step:${id}`, 0, isIndex), s.steps.length - 1));
     setTool(loadPref("tool", "select", isTool));
-    setPenColor(loadPref("pen", "chalk", isPen));
+    setPen(loadPref("pen2", DEFAULT_PEN, isPen));
     setCallouts(loadPref("callouts", false, isBool));
     setPrefsLoaded(true);
   }, [id]);
@@ -64,10 +78,10 @@ export function Editor({ id }: { id: string }) {
   useEffect(() => {
     if (!prefsLoaded) return;
     savePref("tool", tool);
-    savePref("pen", penColor);
+    savePref("pen2", pen);
     savePref(`step:${id}`, stepIndex);
     savePref("callouts", callouts);
-  }, [prefsLoaded, id, tool, penColor, stepIndex, callouts]);
+  }, [prefsLoaded, id, tool, pen, stepIndex, callouts]);
 
   const strat = history?.present ?? null;
 
@@ -276,7 +290,7 @@ export function Editor({ id }: { id: string }) {
 
       <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[auto_minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <Toolbar tool={tool} onTool={setTool} side={strat.side} penColor={penColor} onPenColor={setPenColor} />
+          <Toolbar tool={tool} onTool={setTool} side={strat.side} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-2">
@@ -317,7 +331,7 @@ export function Editor({ id }: { id: string }) {
               scene={scene}
               time={time}
               tool={tool}
-              penColor={penColor}
+              pen={pen}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onCommit={commitObjects}
@@ -355,6 +369,9 @@ export function Editor({ id }: { id: string }) {
             onStrat={commitStrat}
             onSelect={setSelectedId}
             onPickMap={() => setMapPicker(true)}
+            tool={tool}
+            pen={pen}
+            onPen={setPen}
           />
         </aside>
       </div>
