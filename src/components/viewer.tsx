@@ -31,8 +31,8 @@ export function Viewer() {
   if (strat === null) {
     return (
       <main className="mx-auto max-w-md px-4 py-24 text-center">
-        <h1 className="text-xl font-semibold">This link doesn&apos;t contain a strat</h1>
-        <p className="mt-2 text-muted">It may have been cut off when it was copied. Ask for the link again.</p>
+        <h1 className="font-display text-3xl font-semibold">This link doesn&apos;t contain a strat</h1>
+        <p className="mt-2 text-muted">Part of the link is probably missing. Ask whoever sent it to copy it again.</p>
         <Link href="/" className="btn btn-primary mt-6">
           Make your own
         </Link>
@@ -48,7 +48,7 @@ export function Viewer() {
     .sort((a, b) => (a.kind === "utility" && b.kind === "utility" ? a.t - b.t : 0));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-12">
+    <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
       <header className="flex items-center justify-between gap-3 py-4">
         <Logo />
         <button
@@ -73,24 +73,25 @@ export function Viewer() {
 
         <aside className="space-y-5 rounded-xl border border-line bg-panel p-5">
           <div>
-            <h1 className="text-xl font-bold">{strat.name}</h1>
-            <p className="text-sm text-muted">
-              {MAPS[strat.map].name} · {strat.side} side
+            <h1 className="font-display text-3xl font-semibold">{strat.name}</h1>
+            <p className="mt-1 flex items-center gap-2 text-sm text-muted">
+              <span className={`inline-block size-2.5 rounded-full ${strat.side === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
+              {MAPS[strat.map].name}, {strat.side} side
             </p>
           </div>
           {strat.call && (
             <div>
-              <h2 className="mb-1 text-xs font-medium tracking-wide text-faint uppercase">When to call it</h2>
+              <h2 className="label">When to call it</h2>
               <p className="text-sm whitespace-pre-line">{strat.call}</p>
             </div>
           )}
           {roster.length > 0 && (
             <div>
-              <h2 className="mb-2 text-xs font-medium tracking-wide text-faint uppercase">Roles</h2>
+              <h2 className="label">Roles</h2>
               <ul className="space-y-1.5">
                 {roster.map((p) => (
                   <li key={p.id} className="flex items-center gap-2 text-sm">
-                    <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-t" : "bg-ct"}`}>{p.n}</span>
+                    <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-team-t" : "bg-team-ct"}`}>{p.n}</span>
                     {p.role || <span className="text-faint">No role</span>}
                   </li>
                 ))}
@@ -99,12 +100,12 @@ export function Viewer() {
           )}
           {utility.length > 0 && (
             <div>
-              <h2 className="mb-2 text-xs font-medium tracking-wide text-faint uppercase">Utility order</h2>
+              <h2 className="label">Utility order</h2>
               <ol className="space-y-1 text-sm">
                 {utility.map((u) =>
                   u.kind === "utility" ? (
                     <li key={u.id}>
-                      <button type="button" className="hover:text-accent" onClick={() => setTime(u.t)}>
+                      <button type="button" className="min-h-9 hover:text-chalk" onClick={() => setTime(u.t)}>
                         <span className="tabular-nums text-muted">{u.t}s</span> {UTILITY_LABEL[u.type]}
                       </button>
                     </li>
@@ -115,7 +116,7 @@ export function Viewer() {
           )}
           {strat.notes && (
             <div>
-              <h2 className="mb-1 text-xs font-medium tracking-wide text-faint uppercase">Notes</h2>
+              <h2 className="label">Notes</h2>
               <p className="text-sm whitespace-pre-line">{strat.notes}</p>
             </div>
           )}

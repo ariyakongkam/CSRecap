@@ -15,7 +15,7 @@ interface Props {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1 block text-xs font-medium tracking-wide text-faint uppercase">{children}</span>;
+  return <span className="label">{children}</span>;
 }
 
 function NumberField({ label, value, onChange, min = 0, max = 120, step = 0.5, suffix }: {
@@ -58,10 +58,10 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{describe(selected, strat)}</h2>
+          <h2 className="font-display text-xl font-semibold">{describe(selected, strat)}</h2>
           <button
             type="button"
-            className="btn !px-2.5 text-danger"
+            className="btn btn-icon text-danger"
             onClick={() => {
               onCommit(removeObject(strat, selected.id));
               onSelect(null);
@@ -159,7 +159,7 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-semibold">Strat details</h2>
+      <h2 className="font-display text-xl font-semibold">Strat details</h2>
       <label className="block">
         <Label>Name</Label>
         <input className="field" value={strat.name} maxLength={80} onChange={(e) => onCommit({ ...strat, name: e.target.value })} />
@@ -196,7 +196,7 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
       <label className="block">
         <Label>Notes</Label>
         <textarea
-          className="field min-h-24"
+          className="field min-h-36"
           value={strat.notes}
           maxLength={2000}
           placeholder="Abort call, fallback, variations"
@@ -206,7 +206,7 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
       <div>
         <Label>Roles</Label>
         {roster.length === 0 ? (
-          <p className="text-sm text-muted">Place players with the T (1) or CT (2) tool.</p>
+          <p className="text-sm text-muted">No players yet. Pick the T or CT tool and click the map.</p>
         ) : (
           <ul className="space-y-1.5">
             {roster.map((p) => (
@@ -214,9 +214,9 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
                 <button
                   type="button"
                   onClick={() => onSelect(p.id)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-panel-2"
+                  className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm hover:bg-panel-2"
                 >
-                  <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-t" : "bg-ct"}`}>{p.n}</span>
+                  <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-team-t" : "bg-team-ct"}`}>{p.n}</span>
                   <span className={p.role ? "" : "text-faint"}>{p.role || "No role yet"}</span>
                 </button>
               </li>

@@ -233,7 +233,7 @@ export function Board({
         return (
           <g key={r.id} opacity={vis.opacity} onPointerDown={(e) => onObjectDown(e, r)} style={{ cursor: readOnly ? "default" : "pointer" }}>
             <path d={pathData(r.points)} stroke="transparent" strokeWidth="18" fill="none" />
-            {selected && <path d={pathData(r.points)} stroke="var(--accent)" strokeWidth="9" fill="none" opacity="0.35" strokeLinecap="round" strokeLinejoin="round" />}
+            {selected && <path d={pathData(r.points)} stroke="var(--select)" strokeWidth="9" fill="none" opacity="0.35" strokeLinecap="round" strokeLinejoin="round" />}
             <path
               d={pathData(r.points)}
               stroke={color}
@@ -280,7 +280,7 @@ export function Board({
         if (o.kind !== "text") return null;
         const vis = visibilityAt(o, time);
         if (!vis.show) return null;
-        const w = Math.min(420, 16 + o.text.length * 9.2);
+        const w = Math.min(420, 22 + o.text.length * 8.2);
         return (
           <g key={o.id} onPointerDown={(e) => onObjectDown(e, o)} style={{ cursor: readOnly ? "default" : "move" }}>
             <rect
@@ -290,10 +290,10 @@ export function Board({
               height="34"
               rx="8"
               fill="var(--note-bg)"
-              stroke={o.id === selectedId ? "var(--accent)" : "var(--note-border)"}
+              stroke={o.id === selectedId ? "var(--select)" : "var(--note-border)"}
               strokeWidth={o.id === selectedId ? 3 : 1.5}
             />
-            <text x={o.x} y={o.y + 6} textAnchor="middle" fontSize="16" fontWeight="600" fill="var(--ink)">
+            <text x={o.x} y={o.y + 6} textAnchor="middle" fontSize="17" fontWeight="600" fill="var(--ink)" style={{ fontFamily: "var(--font-condensed)" }}>
               {o.text}
             </text>
           </g>
@@ -311,13 +311,14 @@ export function Board({
             onPointerDown={(e) => onObjectDown(e, p)}
             style={{ cursor: readOnly ? "default" : tool === "route" ? "crosshair" : "move" }}
           >
-            {selected && <circle r="25" fill="none" stroke="var(--accent)" strokeWidth="4" />}
-            <circle r="18" fill={TEAM_COLOR[p.team]} stroke="var(--board-bg)" strokeWidth="3" />
-            <text y="6" textAnchor="middle" fontSize="17" fontWeight="800" fill="var(--token-ink)">
+            {selected && <circle r="25" fill="none" stroke="var(--select)" strokeWidth="4" />}
+            <circle r="19" cy="3" fill="var(--shadow)" opacity="0.6" />
+            <circle r="18" fill={TEAM_COLOR[p.team]} stroke="var(--token-ring)" strokeWidth="3" />
+            <text y="7" textAnchor="middle" fontSize="20" fontWeight="700" fill="var(--token-ink)" style={{ fontFamily: "var(--font-condensed)" }}>
               {p.n}
             </text>
             {p.role && (
-              <text y="38" textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--ink)" stroke="var(--board-bg)" strokeWidth="4" paintOrder="stroke">
+              <text y="40" textAnchor="middle" fontSize="16" fontWeight="600" fill="var(--ink)" stroke="var(--wall)" strokeWidth="5" paintOrder="stroke" style={{ fontFamily: "var(--font-condensed)" }}>
                 {p.role}
               </text>
             )}
@@ -331,8 +332,8 @@ export function Board({
 function TimeTag({ x, y, label }: { x: number; y: number; label: string }) {
   return (
     <g transform={`translate(${x} ${y})`} pointerEvents="none">
-      <rect x="-20" y="-11" width="40" height="20" rx="10" fill="var(--board-bg)" opacity="0.85" />
-      <text y="4" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--muted-ink)">
+      <rect x="-21" y="-11" width="42" height="21" rx="10.5" fill="var(--wall)" opacity="0.9" />
+      <text y="5" textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--muted-ink)" style={{ fontFamily: "var(--font-condensed)" }}>
         {label}
       </text>
     </g>
@@ -341,7 +342,7 @@ function TimeTag({ x, y, label }: { x: number; y: number; label: string }) {
 
 function UtilityGlyph({ u, selected }: { u: UtilityObject; selected: boolean }) {
   const r = UTILITY_RADIUS[u.type];
-  const ring = selected ? <circle cx={u.x} cy={u.y} r={r + 7} fill="none" stroke="var(--accent)" strokeWidth="3.5" /> : null;
+  const ring = selected ? <circle cx={u.x} cy={u.y} r={r + 7} fill="none" stroke="var(--select)" strokeWidth="3.5" /> : null;
   switch (u.type) {
     case "smoke":
       return (
@@ -385,45 +386,132 @@ function UtilityGlyph({ u, selected }: { u: UtilityObject; selected: boolean }) 
 }
 
 function MapLayer({ map }: { map: MapDef }) {
+  const rooms = map.areas;
   return (
     <g pointerEvents="none">
-      <rect width="1000" height="1000" fill="var(--board-bg)" />
-      {Array.from({ length: 9 }, (_, i) => (i + 1) * 100).map((v) => (
-        <g key={v} stroke="var(--grid)" strokeWidth="1">
-          <line x1={v} y1="0" x2={v} y2="1000" />
-          <line x1="0" y1={v} x2="1000" y2={v} />
-        </g>
-      ))}
-      {map.areas.map((a) => (
-        <rect
-          key={a.id}
-          x={a.x}
-          y={a.y}
-          width={a.w}
-          height={a.h}
-          rx="6"
-          fill={a.site ? "var(--site-floor)" : "var(--map-floor)"}
-          stroke="var(--map-wall)"
-          strokeWidth="2"
-        />
-      ))}
-      {map.areas
+      <defs>
+        <pattern id="void-hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="14" height="14" fill="var(--void)" />
+          <line x1="0" y1="0" x2="0" y2="14" stroke="var(--void-line)" strokeWidth="3" />
+        </pattern>
+        <pattern id="floor-tiles" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M40 0H0V40" fill="none" stroke="var(--floor-seam)" strokeWidth="1" />
+        </pattern>
+        <pattern id="plant-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+          <line x1="0" y1="0" x2="0" y2="10" stroke="var(--plant)" strokeWidth="2" />
+        </pattern>
+      </defs>
+
+      <rect width="1000" height="1000" fill="url(#void-hatch)" />
+
+      {rooms.length === 0 && <rect width="1000" height="1000" fill="var(--floor)" opacity="0.35" />}
+
+      {/* shadow, then walls (thick strokes), then floors on top: connected areas merge into one plan */}
+      <g transform="translate(5 8)" opacity="0.55">
+        {rooms.map((a) => (
+          <rect key={a.id} x={a.x - 7} y={a.y - 7} width={a.w + 14} height={a.h + 14} rx="6" fill="var(--shadow)" />
+        ))}
+      </g>
+      <g>
+        {rooms.map((a) => (
+          <rect key={a.id} x={a.x - 7} y={a.y - 7} width={a.w + 14} height={a.h + 14} rx="6" fill="var(--wall)" />
+        ))}
+      </g>
+      <g>
+        {rooms.map((a) => (
+          <rect
+            key={a.id}
+            x={a.x}
+            y={a.y}
+            width={a.w}
+            height={a.h}
+            rx="2"
+            fill={a.site ? "var(--site-floor)" : a.spawn === "T" ? "var(--t-floor)" : a.spawn === "CT" ? "var(--ct-floor)" : "var(--floor)"}
+          />
+        ))}
+        {rooms.map((a) => (
+          <rect key={`${a.id}-tiles`} x={a.x} y={a.y} width={a.w} height={a.h} fill="url(#floor-tiles)" />
+        ))}
+      </g>
+
+      {/* bombsites: hatched plant zone + stencil letter */}
+      {rooms
         .filter((a) => a.site)
         .map((a) => (
-          <text key={`${a.id}-letter`} x={a.x + a.w / 2} y={a.y + a.h / 2 + 30} textAnchor="middle" fontSize="88" fontWeight="800" fill="var(--site-letter)">
-            {a.site}
-          </text>
+          <g key={`${a.id}-site`}>
+            <rect
+              x={a.x + a.w * 0.22}
+              y={a.y + a.h * 0.22}
+              width={a.w * 0.56}
+              height={a.h * 0.56}
+              rx="4"
+              fill="url(#plant-hatch)"
+              stroke="var(--plant)"
+              strokeWidth="2"
+              strokeDasharray="8 6"
+            />
+            <text
+              x={a.x + a.w / 2}
+              y={a.y + a.h / 2 + 34}
+              textAnchor="middle"
+              fontSize="100"
+              fill="var(--site-letter)"
+              style={{ fontFamily: "var(--font-stencil)" }}
+            >
+              {a.site}
+            </text>
+          </g>
         ))}
-      {map.areas
+
+      {/* cover */}
+      {map.props.map((p, i) => (
+        <g key={i}>
+          <rect x={p.x + 3} y={p.y + 4} width={p.w} height={p.h} rx="2" fill="var(--shadow)" opacity="0.7" />
+          <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="2" fill="var(--prop)" stroke="var(--prop-edge)" strokeWidth="1.5" />
+        </g>
+      ))}
+
+      {/* callouts */}
+      {rooms
         .filter((a) => !a.corridor)
-        .map((a) => (
-          <text key={`${a.id}-name`} x={a.x + 8} y={a.y + 20} fontSize="14" fontWeight="600" fill="var(--area-label)">
-            {a.name}
-          </text>
-        ))}
-      {map.areas.length > 0 && (
-        <text x="988" y="988" textAnchor="end" fontSize="13" fill="var(--area-label)">
-          {map.name} · schematic, not to scale
+        .map((a) => {
+          const vertical = a.h > a.w * 1.6 && a.w < 90;
+          const cx = a.x + a.w / 2;
+          const cy = a.site ? a.y + 22 : a.y + a.h / 2 + 6;
+          return (
+            <text
+              key={`${a.id}-name`}
+              x={cx}
+              y={cy}
+              textAnchor="middle"
+              fontSize="19"
+              fontWeight="600"
+              fill="var(--callout)"
+              transform={vertical ? `rotate(-90 ${cx} ${cy - 6})` : undefined}
+              style={{ fontFamily: "var(--font-condensed)" }}
+            >
+              {a.name}
+            </text>
+          );
+        })}
+      {map.callouts.map((c) => (
+        <text
+          key={c.text}
+          x={c.x}
+          y={c.y}
+          textAnchor="middle"
+          fontSize="14"
+          fontWeight="500"
+          fill="var(--callout-minor)"
+          style={{ fontFamily: "var(--font-condensed)" }}
+        >
+          {c.text}
+        </text>
+      ))}
+
+      {rooms.length > 0 && (
+        <text x="986" y="988" textAnchor="end" fontSize="14" fill="var(--callout-minor)" style={{ fontFamily: "var(--font-condensed)" }}>
+          {map.name}, schematic layout
         </text>
       )}
     </g>

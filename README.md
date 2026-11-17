@@ -17,7 +17,7 @@ link that opens without an account.
 - **Editing**: undo/redo (a whole drag undoes in one step), keyboard shortcuts (V, 1, 2, R, S, F, M, H, N, Space
   to play, Delete, Ctrl+Z).
 
-Maps are our own simplified schematics built from named areas (`src/lib/maps`), not Valve's radar images, which
+Maps are our own simplified layouts built from named areas, cover and callouts (`src/lib/maps`), not Valve's radar images, which
 are © Valve. Named areas also make it possible to check plans against demos later ("smoke landed in Jungle").
 
 ## Not built yet
