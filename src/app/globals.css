@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0d1014;
+  --panel: #151a21;
+  --panel-2: #1c232c;
+  --line: #2a333f;
+  --text: #e8edf3;
+  --muted: #9aa6b4;
+  --faint: #6b7684;
+  --accent: #f5b642;
+  --accent-ink: #1a1203;
+  --danger: #ff6b6b;
+
+  /* board */
+  --board-bg: #11161c;
+  --grid: #18202a;
+  --map-floor: #222b36;
+  --site-floor: #2a2f24;
+  --map-wall: #3a4655;
+  --site-letter: rgba(245, 182, 66, 0.18);
+  --area-label: #8592a1;
+  --ink: #e8edf3;
+  --muted-ink: #b5c0cc;
+  --token-ink: #0d1014;
+  --t: #f0a640;
+  --ct: #5aa9ff;
+  --smoke: #c7d0da;
+  --flash: #fff2a8;
+  --molotov: #ff7a3d;
+  --he: #ff5d7a;
+  --note-bg: rgba(13, 16, 20, 0.88);
+  --note-border: #3a4655;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-t: var(--t);
+  --color-ct: var(--ct);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.field:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn:hover:not(:disabled) {
+  border-color: #3d4856;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #ffc65c;
+  border-color: #ffc65c;
+}
