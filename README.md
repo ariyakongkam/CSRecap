@@ -33,6 +33,11 @@ bombsites and spawns for Inferno, Nuke (upper level), Ancient, Anubis, Train and
 Accounts and team workspaces, real-time co-editing, comments, more maps, and the plan-vs-reality check against
 FACEIT demos (see the product research doc).
 
+## Run it on Windows
+
+Double-click `start.bat`. It checks that Node.js is installed, installs dependencies on the first run, starts the
+app and opens http://localhost:3000.
+
 ## Development
 
 ```bash
