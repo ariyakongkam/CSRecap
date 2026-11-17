@@ -69,7 +69,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Map style follows ValoPlant: plain, bombsite letters only, callout names behind a "Callouts" toggle.
   Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Nuke is the upper
   level only; Vertigo is missing (two levels).
-- Name is **csgg**. Logo is the light-blue orbit + star (`src/components/logo-mark.tsx`, vector paths).
+- Name is **csgg**. Logo is a white cat head inside a light-blue orbit with a star (`src/components/logo-mark.tsx`,
+  vector paths; the source image has a transparent background, so the white cat is easy to miss).
 - **Calls to action are light blue** (`--brand: #90b8f8`, `.btn-primary`). Selection on the board is chalk
   (`--chalk`). T is orange (`--t`), CT is blue (`--ct`).
 - Pen works like ValoPlant (type, colour swatches + any colour, opacity, thickness). Sight cones are standalone

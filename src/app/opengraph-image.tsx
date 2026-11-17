@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { LOGO_PATHS } from "@/components/logo-mark";
+import { LOGO_CAT, LOGO_PATHS } from "@/components/logo-mark";
 import { APP_NAME } from "@/lib/brand";
 
 export const alt = `${APP_NAME}: free CS2 strat planner and tactics board`;
@@ -12,6 +12,7 @@ export default function OpenGraphImage() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", background: "#101a24", padding: 80, gap: 64 }}>
         <svg viewBox="80 160 870 700" width="300" height="242">
+          <path d={LOGO_CAT} fill="#ffffff" fillRule="evenodd" />
           {LOGO_PATHS.map((d) => (
             <path key={d} d={d} fill="#90b8f8" />
           ))}
