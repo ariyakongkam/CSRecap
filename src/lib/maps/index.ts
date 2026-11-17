@@ -39,13 +39,15 @@ export interface MapDef {
   radar: string | null;
   /** In-game screenshot used behind the map picker. */
   thumb: string | null;
+  /** Black/white mask of walls and objects that block sight cones (scripts/build-sight-masks.py). */
+  sight?: string | null;
   areas: Area[];
   callouts: Callout[];
 }
 
 export type MapId = "mirage" | "dust2" | "inferno" | "nuke" | "ancient" | "anubis" | "train" | "overpass" | "blank";
 
-const images = (m: string) => ({ radar: `/maps/${m}-radar.webp`, thumb: `/maps/${m}-thumb.webp` });
+const images = (m: string) => ({ radar: `/maps/${m}-radar.webp`, thumb: `/maps/${m}-thumb.webp`, sight: `/maps/${m}-sight.png` });
 
 const r = (id: string, name: string, x: number, y: number, w: number, h: number, extra: Partial<Area> = {}): Area => ({
   id,

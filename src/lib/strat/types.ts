@@ -195,7 +195,8 @@ export const DEFAULT_PEN: PenSettings = { shape: "free", color: "#ffffff", opaci
 /** Opening angle of each cone width, in degrees. */
 export const CONE_DEGREES: Record<ConeWidth, number> = { wide: 100, normal: 60, narrow: 22 };
 export const CONE_LABEL: Record<ConeWidth, string> = { wide: "Wide sight", normal: "Normal sight", narrow: "Narrow sight" };
-export const CONE_LENGTH = { min: 40, max: 700, default: 160 };
+/** Board units (1000 = the whole radar). Walls and objects cut the cone shorter. */
+export const CONE_LENGTH = { min: 40, max: 380, default: 150 };
 
 export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 

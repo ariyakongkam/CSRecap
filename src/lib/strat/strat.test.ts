@@ -20,6 +20,7 @@ import { decodeStrat, encodeStrat } from "./share";
 import { TEMPLATES } from "./templates";
 import { nextRouteStart, playerPositionAt, stratDuration, visibilityAt, walkDuration, RUN_SPEED } from "./timeline";
 import type { BoardObject, PlacedPlayer, RouteObject, Scene, UtilityObject } from "./types";
+import { CONE_LENGTH } from "./types";
 
 function scene(objects: BoardObject[] = []): Scene {
   return { map: "mirage", side: "T", objects };
@@ -279,7 +280,7 @@ describe("pen and sight cones", () => {
     const [a, b, c] = s.steps[0].objects;
     expect(a).toMatchObject({ shape: "free", color: "#ff4d4d", opacity: 1 });
     expect(b).toMatchObject({ shape: "arrow", color: "#abcdef", opacity: 1, width: 20, points: [{ x: 0, y: 0 }, { x: 9, y: 9 }] });
-    expect(c).toMatchObject({ angle: 270, length: 700, cone: "normal" });
+    expect(c).toMatchObject({ angle: 270, length: CONE_LENGTH.max, cone: "normal" });
   });
 
   it("gives every example's sight cones a valid width and reach", () => {

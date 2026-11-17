@@ -1,5 +1,6 @@
+import { sightPolygon, type SightMask } from "@/lib/strat/sight";
 import { UtilityShape } from "@/components/utility-icons";
-import { CONE_DEGREES, UTILITY_RADIUS, type BombObject, type LineupObject, type Side, type UtilityObject, type VisionObject } from "@/lib/strat/types";
+import { UTILITY_RADIUS, type BombObject, type LineupObject, type Side, type UtilityObject, type VisionObject } from "@/lib/strat/types";
 
 export const TEAM_COLOR: Record<Side, string> = { T: "var(--t)", CT: "var(--ct)" };
 
@@ -91,13 +92,10 @@ export function coneTip(v: VisionObject): { x: number; y: number } {
  * `v` must already have its origin resolved (an attached cone starts at its player).
  * The origin dot and the tip diamond are drawn by the board, which owns their drag handling.
  */
-export function VisionCone({ v, selected }: { v: VisionObject; selected: boolean }) {
-  const half = CONE_DEGREES[v.cone] / 2;
-  const rad = (d: number) => (d * Math.PI) / 180;
-  const a = rad(v.angle - half);
-  const b = rad(v.angle + half);
+export function VisionCone({ v, selected, sight = null }: { v: VisionObject; selected: boolean; sight?: SightMask | null }) {
   const R = v.length;
-  const d = `M${v.x} ${v.y}L${v.x + R * Math.cos(a)} ${v.y + R * Math.sin(a)}A${R} ${R} 0 0 1 ${v.x + R * Math.cos(b)} ${v.y + R * Math.sin(b)}Z`;
+  const pts = sightPolygon(v, sight);
+  const d = `M${pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join("L")}Z`;
   const grad = `cone-grad-${v.id}`;
   return (
     <g>

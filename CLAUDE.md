@@ -77,6 +77,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   ValoPlant's radar: three widths, the tool places ONE cone then switches back to Select (V). A cone placed on a
   player (or whose dot is dropped on one) attaches via `vision.player` and follows them, also in playback. Soft
   white gradient, origin dot (hidden when attached), diamond tip handle that turns red and sets aim and length.
+  Cones stop at walls and crates (line of sight): `public/maps/*-sight.png` masks (white = blocked, built by
+  `scripts/build-sight-masks.py` from the radars), ray casting in `src/lib/strat/sight.ts`. Max length is 380 units
+  (the owner found longer unrealistic).
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 

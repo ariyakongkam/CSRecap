@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { BombGlyph, LineupGlyph, TEAM_COLOR, UtilityGlyph, VisionCone, coneTip } from "@/components/glyphs";
 import { MapLayer } from "@/components/map-layer";
+import { loadSightMask, type SightMask } from "@/lib/strat/sight";
 import { MAPS } from "@/lib/maps";
 import { clamp, pathData, simplify } from "@/lib/strat/geometry";
 import { enemyOf, newId, nextPlayerNumber, normAngle, removeObject } from "@/lib/strat/model";
@@ -101,6 +102,17 @@ export function Board({
   const [activeTip, setActiveTip] = useState<string | null>(null);
   const map = MAPS[scene.map];
   const objects = scene.objects;
+  const [sight, setSight] = useState<{ url: string; mask: SightMask | null } | null>(null);
+  useEffect(() => {
+    const url = map.sight;
+    if (!url) return;
+    let live = true;
+    loadSightMask(url).then((mask) => live && setSight({ url, mask }));
+    return () => {
+      live = false;
+    };
+  }, [map.sight]);
+  const sightMask = sight && sight.url === map.sight ? sight.mask : null;
   const players = objects.filter((o): o is PlacedPlayer => o.kind === "player");
   const playerById = new Map(players.map((p) => [p.id, p]));
 
@@ -509,7 +521,7 @@ export function Board({
         return (
           <g key={v.id}>
             <g {...handlers(v)} style={interactive}>
-              <VisionCone v={shown} selected={v.id === selectedId} />
+              <VisionCone v={shown} selected={v.id === selectedId} sight={sightMask} />
             </g>
             {/* origin dot: hidden under the player when the cone belongs to one */}
             {!v.player && (
@@ -554,6 +566,7 @@ export function Board({
             cone: coneDraft.cone,
           }}
           selected={false}
+          sight={sightMask}
         />
       )}
 
