@@ -339,6 +339,7 @@ export function Editor({ id }: { id: string }) {
               onLive={liveObjects}
               onNotice={setNotice}
               callouts={callouts}
+              onToolDone={() => setTool("select")}
             />
             {isEmpty && tool === "select" && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">

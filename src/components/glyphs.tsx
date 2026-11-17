@@ -86,7 +86,11 @@ export function coneTip(v: VisionObject): { x: number; y: number } {
   return { x: v.x + v.length * Math.cos(a), y: v.y + v.length * Math.sin(a) };
 }
 
-/** A sight cone: where someone is looking and how far. Selected cones show their two drag handles. */
+/**
+ * A sight cone, drawn like ValoPlant's: a soft light that fades towards the end, no hard edge.
+ * `v` must already have its origin resolved (an attached cone starts at its player).
+ * The origin dot and the tip diamond are drawn by the board, which owns their drag handling.
+ */
 export function VisionCone({ v, selected }: { v: VisionObject; selected: boolean }) {
   const half = CONE_DEGREES[v.cone] / 2;
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -94,17 +98,18 @@ export function VisionCone({ v, selected }: { v: VisionObject; selected: boolean
   const b = rad(v.angle + half);
   const R = v.length;
   const d = `M${v.x} ${v.y}L${v.x + R * Math.cos(a)} ${v.y + R * Math.sin(a)}A${R} ${R} 0 0 1 ${v.x + R * Math.cos(b)} ${v.y + R * Math.sin(b)}Z`;
-  const tip = coneTip(v);
+  const grad = `cone-grad-${v.id}`;
   return (
     <g>
-      <path d={d} fill="var(--cone)" stroke={selected ? "var(--select)" : "var(--cone-edge)"} strokeWidth={selected ? 2.5 : 1.5} />
-      <circle cx={v.x} cy={v.y} r="7" fill="var(--chalk)" stroke="var(--void)" strokeWidth="2" data-handle="origin" />
-      {selected && (
-        <>
-          <line x1={v.x} y1={v.y} x2={tip.x} y2={tip.y} stroke="var(--select)" strokeWidth="1.5" strokeDasharray="5 5" pointerEvents="none" />
-          <circle cx={tip.x} cy={tip.y} r="10" fill="var(--select)" stroke="var(--void)" strokeWidth="2.5" data-handle="tip" style={{ cursor: "grab" }} />
-        </>
-      )}
+      <defs>
+        <radialGradient id={grad} cx={v.x} cy={v.y} r={R} gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="var(--cone-light)" stopOpacity="0.5" />
+          <stop offset="0.7" stopColor="var(--cone-light)" stopOpacity="0.2" />
+          <stop offset="1" stopColor="var(--cone-light)" stopOpacity="0.05" />
+        </radialGradient>
+      </defs>
+      <path d={d} fill={`url(#${grad})`} />
+      {selected && <path d={d} fill="none" stroke="var(--select)" strokeWidth="2" strokeDasharray="6 5" pointerEvents="none" />}
     </g>
   );
 }

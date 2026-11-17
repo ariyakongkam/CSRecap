@@ -248,7 +248,15 @@ describe("pen and sight cones", () => {
     })!;
     const [p, cone] = s.steps[0].objects;
     expect(p).not.toHaveProperty("facing");
-    expect(cone).toMatchObject({ kind: "vision", x: 10, y: 20, angle: 90 });
+    expect(cone).toMatchObject({ kind: "vision", player: "p", x: 10, y: 20, angle: 90 });
+  });
+
+  it("keeps a cone with its player: removed with them, copied with them", () => {
+    const cone: BoardObject = { id: "c", kind: "vision", player: "p1", x: 100, y: 100, angle: 0, length: 150, cone: "normal" };
+    const free: BoardObject = { ...cone, id: "f", player: null };
+    expect(removeObject([player(), cone, free], "p1").map((o) => o.id)).toEqual(["f"]);
+    const [p, c] = cloneObjects([player(), cone]);
+    expect((c as Extract<BoardObject, { kind: "vision" }>).player).toBe(p.id);
   });
 
   it("reads old named pen colours and keeps new pen settings in range", () => {

@@ -131,7 +131,7 @@ export function toolHint(tool: Tool): string {
     case "cone-wide":
     case "cone-normal":
     case "cone-narrow":
-      return "Drag from where someone stands towards where they look. Drag the cone's handle to change how far.";
+      return "Click a player (or anywhere) and drag towards where they look. Then you're back on the cursor.";
     case "route":
       return "Drag from a player to draw their route.";
     case "pen":

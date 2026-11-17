@@ -56,7 +56,7 @@ export function nextPlayerNumber(scene: Pick<Scene, "objects">, team: Side): num
 
 /** Removes an object; removing a player also removes the routes attached to it. */
 export function removeObject(objects: BoardObject[], id: string): BoardObject[] {
-  return objects.filter((o) => o.id !== id && !(o.kind === "route" && o.player === id));
+  return objects.filter((o) => o.id !== id && !((o.kind === "route" || o.kind === "vision") && o.player === id));
 }
 
 /** Copies objects with fresh ids, keeping routes attached to the copied players. */
@@ -67,7 +67,7 @@ export function cloneObjects(objects: BoardObject[]): BoardObject[] {
     idMap.set(o.id, id);
     return { ...o, id };
   });
-  return copies.map((o) => (o.kind === "route" && o.player ? { ...o, player: idMap.get(o.player) ?? null } : o));
+  return copies.map((o) => ((o.kind === "route" || o.kind === "vision") && o.player ? { ...o, player: idMap.get(o.player) ?? null } : o));
 }
 
 /**
@@ -241,6 +241,7 @@ function parseObject(v: unknown): BoardObject | null {
       return {
         id,
         kind: "vision",
+        player: typeof o.player === "string" ? o.player.slice(0, 40) : null,
         angle: normAngle(angle),
         length: num(o.length, CONE_LENGTH.min, CONE_LENGTH.max) ?? CONE_LENGTH.default,
         cone,
@@ -263,7 +264,7 @@ function legacyCones(raw: unknown[]): unknown[] {
     if (!o || typeof o !== "object") return [o];
     const r = o as Record<string, unknown>;
     if (r.kind !== "player" || typeof r.facing !== "number") return [o];
-    return [o, { id: `${String(r.id).slice(0, 30)}-cone`, kind: "vision", x: r.x, y: r.y, angle: r.facing, length: 125, cone: "wide" }];
+    return [o, { id: `${String(r.id).slice(0, 30)}-cone`, kind: "vision", player: r.id, x: r.x, y: r.y, angle: r.facing, length: 125, cone: "wide" }];
   });
 }
 
@@ -282,7 +283,7 @@ function parseObjects(v: unknown): BoardObject[] {
       bombSeen = true;
       return true;
     })
-    .map((x) => (x.kind === "route" && x.player && !players.has(x.player) ? { ...x, player: null } : x));
+    .map((x) => ((x.kind === "route" || x.kind === "vision") && x.player && !players.has(x.player) ? { ...x, player: null } : x));
 }
 
 /**

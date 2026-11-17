@@ -76,10 +76,14 @@ export interface DrawingObject {
   width: number;
 }
 
-/** A sight cone: where someone is looking, and how far. */
+/**
+ * A sight cone: where someone is looking, and how far. When `player` is set the
+ * cone starts at that player and moves with them; x/y is then only a fallback.
+ */
 export interface VisionObject extends Pt {
   id: string;
   kind: "vision";
+  player: string | null;
   /** Direction in degrees (0 = east, 90 = south). */
   angle: number;
   /** How far the cone reaches, in board units. */

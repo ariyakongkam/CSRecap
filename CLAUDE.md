@@ -45,7 +45,7 @@ Before saying something works: type check, lint, tests and build must pass, and 
   `player` (team T/CT, number 1-5, role; enemies are the other team, drawn as squares), `route`, `utility`
   (smoke/flash/molotov/he with time `t`), `text`, `bomb` (one per step), `drawing` (pen: free/line/arrow/rect/
   dashed/dashed-arrow, hex colour, opacity, width), `lineup` (pin with title + http(s) link), `vision`
-  (sight cone: wide/normal/narrow, angle, length).
+  (sight cone: wide/normal/narrow, angle, length, optional `player` it is attached to).
 - `src/lib/strat/model.ts`: create/duplicate/continue steps, and `parseStrat`, which validates **all untrusted
   input** (links, storage) and migrates old data (v1 single board, old player `facing` cones, named pen colours).
 - `src/lib/strat/timeline.ts`: playback timing. `share.ts`: lz-string share links. `storage.ts`: localStorage.
@@ -73,8 +73,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
   vector paths; the source image has a transparent background, so the white cat is easy to miss).
 - **Calls to action are light blue** (`--brand: #90b8f8`, `.btn-primary`). Selection on the board is chalk
   (`--chalk`). T is orange (`--t`), CT is blue (`--ct`).
-- Pen works like ValoPlant (type, colour swatches + any colour, opacity, thickness). Sight cones are standalone
-  objects in three widths, moved by the dot and resized/aimed by the tip handle.
+- Pen works like ValoPlant (type, colour swatches + any colour, opacity, thickness). Sight cones work like
+  ValoPlant's radar: three widths, the tool places ONE cone then switches back to Select (V). A cone placed on a
+  player (or whose dot is dropped on one) attaches via `vision.player` and follows them, also in playback. Soft
+  white gradient, origin dot (hidden when attached), diamond tip handle that turns red and sets aim and length.
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 

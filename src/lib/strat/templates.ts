@@ -48,13 +48,13 @@ function builder(map: MapId, side: Side, name: string) {
     player(n: number, role: string, pos: Pt, facing: number | null = null): PlacedPlayer {
       const p: PlacedPlayer = { id: newId(), kind: "player", team: side, n, role, ...pos };
       add(p);
-      if (facing !== null) add({ id: newId(), kind: "vision", angle: facing, length: 150, cone: "normal", ...pos });
+      if (facing !== null) add({ id: newId(), kind: "vision", player: p.id, angle: facing, length: 150, cone: "normal", ...pos });
       return p;
     },
     enemy(n: number, pos: Pt, facing: number | null = null): PlacedPlayer {
       const p: PlacedPlayer = { id: newId(), kind: "player", team: enemyOf(side), n, role: "", ...pos };
       add(p);
-      if (facing !== null) add({ id: newId(), kind: "vision", angle: facing, length: 150, cone: "wide", ...pos });
+      if (facing !== null) add({ id: newId(), kind: "vision", player: p.id, angle: facing, length: 150, cone: "wide", ...pos });
       return p;
     },
     /** The player with number n on our side in the current step. */

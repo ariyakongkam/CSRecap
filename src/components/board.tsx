@@ -15,6 +15,7 @@ import {
   type ConeWidth,
   type DrawingObject,
   type PenSettings,
+  type VisionObject,
   type PlacedPlayer,
   type Pt,
   type RouteObject,
@@ -61,6 +62,8 @@ export interface BoardProps {
   callouts?: boolean;
   /** Part of the 1000×1000 board to show, e.g. to crop in on one site. */
   viewBox?: string;
+  /** A one-shot tool (the sight cones) has been used: go back to the select tool. */
+  onToolDone?: () => void;
 }
 
 type Gesture =
@@ -69,6 +72,7 @@ type Gesture =
   | { mode: "pen"; points: Pt[] }
   | { mode: "cone-new"; origin: Pt; cone: ConeWidth; end: Pt | null }
   | { mode: "cone-tip"; id: string; started: boolean }
+  | { mode: "cone-origin"; id: string; started: boolean; tip: Pt }
   | { mode: "erase"; started: boolean };
 
 const angleTo = (from: Pt, to: Pt) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
@@ -87,16 +91,41 @@ export function Board({
   onNotice,
   callouts = false,
   viewBox = "0 0 1000 1000",
+  onToolDone,
 }: BoardProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const [draft, setDraft] = useState<{ points: Pt[]; color: string } | null>(null);
   const [penDraft, setPenDraft] = useState<DrawingObject | null>(null);
   const [coneDraft, setConeDraft] = useState<{ origin: Pt; end: Pt; cone: ConeWidth } | null>(null);
+  const [activeTip, setActiveTip] = useState<string | null>(null);
   const map = MAPS[scene.map];
   const objects = scene.objects;
   const players = objects.filter((o): o is PlacedPlayer => o.kind === "player");
   const playerById = new Map(players.map((p) => [p.id, p]));
+
+  /** Where a cone starts: its player's position (following their route during playback), or its own spot. */
+  function coneOrigin(v: VisionObject): Pt {
+    const pl = v.player ? playerById.get(v.player) : undefined;
+    if (!pl) return { x: v.x, y: v.y };
+    return time === null ? { x: pl.x, y: pl.y } : playerPositionAt(scene, pl, time);
+  }
+
+  /** The player standing on a point, if any: cones dropped there attach to them. */
+  function playerAt(p: Pt): PlacedPlayer | null {
+    let best: PlacedPlayer | null = null;
+    let bestD = 28;
+    for (const pl of players) {
+      const d = Math.hypot(pl.x - p.x, pl.y - p.y);
+      if (d < bestD) {
+        best = pl;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  const tipOf = (v: VisionObject): Pt => coneTip({ ...v, ...coneOrigin(v) });
 
   function toBoard(e: { clientX: number; clientY: number }): Pt {
     const svg = svgRef.current;
@@ -260,9 +289,23 @@ export function Board({
         g.started = true;
         onCheckpoint?.();
       }
-      const length = clamp(Math.hypot(p.x - v.x, p.y - v.y), CONE_LENGTH.min, CONE_LENGTH.max);
-      const angle = normAngle(angleTo(v, p));
+      const o0 = coneOrigin(v);
+      const length = clamp(Math.hypot(p.x - o0.x, p.y - o0.y), CONE_LENGTH.min, CONE_LENGTH.max);
+      const angle = normAngle(angleTo(o0, p));
       onLive?.(objects.map((o) => (o.id === g.id ? { ...v, angle, length: Math.round(length) } : o)));
+      return;
+    }
+    if (g.mode === "cone-origin") {
+      // The dot moves; the tip stays where it is, so the cone turns to keep looking at it.
+      const v = objects.find((o) => o.id === g.id);
+      if (!v || v.kind !== "vision") return;
+      if (!g.started) {
+        g.started = true;
+        onCheckpoint?.();
+      }
+      const length = clamp(Math.hypot(g.tip.x - p.x, g.tip.y - p.y), CONE_LENGTH.min, CONE_LENGTH.max);
+      const angle = normAngle(angleTo(p, g.tip));
+      onLive?.(objects.map((o) => (o.id === g.id ? { ...v, player: null, x: p.x, y: p.y, angle, length: Math.round(length) } : o)));
       return;
     }
     if (g.mode !== "move") return;
@@ -290,10 +333,33 @@ export function Board({
     }
     if (g.mode === "cone-new") {
       setConeDraft(null);
+      // Started on a player: the cone belongs to them and starts exactly where they stand.
+      const owner = playerAt(g.origin);
+      const origin = owner ? { x: owner.x, y: owner.y } : g.origin;
       // A click without dragging places a cone pointing up at the default length.
-      const end = g.end ?? { x: g.origin.x, y: g.origin.y - CONE_LENGTH.default };
-      const length = clamp(Math.hypot(end.x - g.origin.x, end.y - g.origin.y), CONE_LENGTH.min, CONE_LENGTH.max);
-      add({ id: newId(), kind: "vision", ...g.origin, angle: normAngle(angleTo(g.origin, end)), length: Math.round(length), cone: g.cone });
+      const end = g.end ?? { x: origin.x, y: origin.y - CONE_LENGTH.default };
+      const length = clamp(Math.hypot(end.x - origin.x, end.y - origin.y), CONE_LENGTH.min, CONE_LENGTH.max);
+      add({ id: newId(), kind: "vision", player: owner?.id ?? null, ...origin, angle: normAngle(angleTo(origin, end)), length: Math.round(length), cone: g.cone });
+      onToolDone?.(); // place once, then back to the cursor
+      return;
+    }
+    if (g.mode === "cone-tip") {
+      setActiveTip(null);
+      return;
+    }
+    if (g.mode === "cone-origin") {
+      // Dropped on a player: attach to them (the dot hides under the player, like ValoPlant).
+      const v = objects.find((o) => o.id === g.id);
+      if (!v || v.kind !== "vision" || !g.started) return;
+      const owner = playerAt({ x: v.x, y: v.y });
+      if (owner) {
+        const length = clamp(Math.hypot(g.tip.x - owner.x, g.tip.y - owner.y), CONE_LENGTH.min, CONE_LENGTH.max);
+        onLive?.(
+          objects.map((o) =>
+            o.id === g.id ? { ...v, player: owner.id, x: owner.x, y: owner.y, angle: normAngle(angleTo(owner, g.tip)), length: Math.round(length) } : o,
+          ),
+        );
+      }
       return;
     }
     if (g.mode !== "draw") return;
@@ -327,6 +393,7 @@ export function Board({
     }
     if (o.id !== orig.id) return o;
     if (orig.kind === "route" || orig.kind === "drawing") return { ...orig, points: orig.points.map(shift) };
+    if (orig.kind === "vision") return { ...orig, player: null, ...shift(coneOrigin(orig)) };
     return { ...orig, ...shift(orig) };
   }
 
@@ -336,7 +403,17 @@ export function Board({
     if (readOnly || e.button !== 0) return;
     e.stopPropagation();
     capture(e);
+    onSelect?.(id);
+    setActiveTip(id);
     gesture.current = { mode: "cone-tip", id, started: false };
+  }
+
+  function onConeOriginDown(e: ReactPointerEvent, v: VisionObject) {
+    if (readOnly || e.button !== 0) return;
+    e.stopPropagation();
+    capture(e);
+    onSelect?.(v.id);
+    gesture.current = { mode: "cone-origin", id: v.id, started: false, tip: tipOf(v) };
   }
 
   const handlers = (o: BoardObject) => ({
@@ -425,21 +502,42 @@ export function Board({
       {/* sight cones under the players */}
       {objects.map((v) => {
         if (v.kind !== "vision") return null;
-        const selected = v.id === selectedId;
+        const o = coneOrigin(v);
+        const shown = { ...v, ...o };
+        const tip = coneTip(shown);
+        const handles = !readOnly && tool === "select";
         return (
-          <g key={v.id} {...handlers(v)} style={interactive}>
-            <VisionCone v={v} selected={selected} />
-            {selected && !readOnly && (
-              <circle
-                cx={coneTip(v).x}
-                cy={coneTip(v).y}
-                r="16"
-                fill="transparent"
-                onPointerDown={(e) => onConeTipDown(e, v.id)}
-                style={{ cursor: "grab" }}
+          <g key={v.id}>
+            <g {...handlers(v)} style={interactive}>
+              <VisionCone v={shown} selected={v.id === selectedId} />
+            </g>
+            {/* origin dot: hidden under the player when the cone belongs to one */}
+            {!v.player && (
+              <g
+                className="cone-handle"
+                onPointerDown={handles ? (e) => onConeOriginDown(e, v) : undefined}
+                style={{ cursor: handles ? "grab" : undefined }}
               >
-                <title>Drag to aim and to change how far they see</title>
-              </circle>
+                {handles && <circle cx={o.x} cy={o.y} r="16" fill="transparent" />}
+                <circle className="cone-dot" cx={o.x} cy={o.y} r="7" fill="var(--chalk)" stroke="var(--void)" strokeWidth="2" />
+                <title>Drag to move where the cone starts. Drop it on a player to attach it.</title>
+              </g>
+            )}
+            {handles && (
+              <g className="cone-handle" onPointerDown={(e) => onConeTipDown(e, v.id)} style={{ cursor: "grab" }}>
+                <circle cx={tip.x} cy={tip.y} r="16" fill="transparent" />
+                <path
+                  className="cone-diamond"
+                  data-active={activeTip === v.id}
+                  d={`M${tip.x} ${tip.y - 9}L${tip.x + 9} ${tip.y}L${tip.x} ${tip.y + 9}L${tip.x - 9} ${tip.y}Z`}
+                  fill="var(--chalk)"
+                  fillOpacity="0.12"
+                  stroke="var(--chalk)"
+                  strokeOpacity="0.85"
+                  strokeWidth="2"
+                />
+                <title>Drag to aim the cone and change how far they see</title>
+              </g>
             )}
           </g>
         );
@@ -449,6 +547,7 @@ export function Board({
           v={{
             id: "draft",
             kind: "vision",
+            player: null,
             ...coneDraft.origin,
             angle: angleTo(coneDraft.origin, coneDraft.end),
             length: clamp(Math.hypot(coneDraft.end.x - coneDraft.origin.x, coneDraft.end.y - coneDraft.origin.y), CONE_LENGTH.min, CONE_LENGTH.max),

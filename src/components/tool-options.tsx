@@ -166,7 +166,10 @@ export function ConeControls({
           className="w-full accent-[var(--chalk)]"
         />
       </label>
-      <p className="text-sm text-muted">On the map: drag the dot to move the cone, drag the handle at its tip to aim it and change how far it reaches.</p>
+      <p className="text-sm text-muted">
+        On the map: drag the diamond to aim the cone and change how far it reaches. Drag the dot to move where it starts, and
+        drop it on a player to attach it, so it follows them.
+      </p>
     </div>
   );
 }

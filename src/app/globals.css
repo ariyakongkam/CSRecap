@@ -213,6 +213,20 @@ body {
 
 :root {
   --icon-disc: #0b1117;
-  --cone: rgba(236, 229, 211, 0.18);
-  --cone-edge: rgba(236, 229, 211, 0.55);
+  --cone-light: #ffffff;
+  --cone-handle-hot: #ff5252;
+}
+
+/* Sight cone handles: the tip diamond lights up red when you can grab it (like ValoPlant). */
+.cone-diamond {
+  transition: fill 0.12s, stroke 0.12s;
+}
+.cone-handle:hover .cone-diamond,
+.cone-diamond[data-active="true"] {
+  fill: var(--cone-handle-hot);
+  fill-opacity: 1;
+  stroke: var(--cone-handle-hot);
+}
+.cone-handle:hover .cone-dot {
+  fill: var(--cone-handle-hot);
 }
