@@ -3,7 +3,7 @@
 import { Bomb, Cloud, Eye, Flame, Footprints, Pause, Play, RotateCcw, Type, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { stratDuration, timelineEvents, type TimelineEvent } from "@/lib/strat/timeline";
-import type { Strat } from "@/lib/strat/types";
+import type { Scene } from "@/lib/strat/types";
 
 /** A CS2 round lasts 1:55 after freeze time. */
 const ROUND_SECONDS = 115;
@@ -17,6 +17,7 @@ function EventIcon({ e }: { e: TimelineEvent }) {
   const c = "size-3.5";
   if (e.kind === "route") return <Footprints className={c} />;
   if (e.kind === "text") return <Type className={c} />;
+  if (e.kind === "bomb") return <Bomb className={c} />;
   if (e.label === "smoke") return <Cloud className={c} />;
   if (e.label === "flash") return <Zap className={c} />;
   if (e.label === "molotov") return <Flame className={c} />;
@@ -24,7 +25,7 @@ function EventIcon({ e }: { e: TimelineEvent }) {
 }
 
 export interface TimelineProps {
-  strat: Strat;
+  scene: Scene;
   time: number | null;
   onTime: (t: number | null) => void;
   playing: boolean;
@@ -35,9 +36,9 @@ export interface TimelineProps {
 }
 
 /** Round-clock scrubber: play the plan, scrub to a moment, or go back to the editing view. */
-export function Timeline({ strat, time, onTime, playing, onPlaying, onSelectEvent, editable = true }: TimelineProps) {
-  const max = Math.max(20, stratDuration(strat) + 3);
-  const events = timelineEvents(strat);
+export function Timeline({ scene, time, onTime, playing, onPlaying, onSelectEvent, editable = true }: TimelineProps) {
+  const max = Math.max(20, stratDuration(scene) + 3);
+  const events = timelineEvents(scene);
   const last = useRef<number | null>(null);
   const timeRef = useRef(time);
   const trackRef = useRef<HTMLDivElement>(null);

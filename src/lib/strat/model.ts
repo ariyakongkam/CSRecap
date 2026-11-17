@@ -1,11 +1,15 @@
 import { isMapId, type MapId } from "@/lib/maps";
 import { clamp, round1 } from "./geometry";
 import {
+  PEN_COLORS,
   STRAT_VERSION,
   type BoardObject,
+  type PenColor,
   type PlacedPlayer,
   type Pt,
+  type Scene,
   type Side,
+  type Step,
   type Strat,
   type UtilityType,
 } from "./types";
@@ -16,49 +20,136 @@ export function newId(): string {
   return Math.random().toString(36).slice(2, 14);
 }
 
+export function newStep(name: string, objects: BoardObject[] = []): Step {
+  return { id: newId(), name, objects };
+}
+
 export function createStrat(map: MapId, side: Side, name = "Untitled strat"): Strat {
   const now = new Date().toISOString();
-  return { v: STRAT_VERSION, id: newId(), name, map, side, call: "", notes: "", objects: [], createdAt: now, updatedAt: now };
-}
-
-/** The lowest free number (1–5) for a team, or null when all five are placed. */
-export function nextPlayerNumber(strat: Strat, team: Side): number | null {
-  const used = new Set(strat.objects.filter((o) => o.kind === "player" && o.team === team).map((o) => (o as PlacedPlayer).n));
-  for (let n = 1; n <= 5; n++) if (!used.has(n)) return n;
-  return null;
-}
-
-/** Removes an object; removing a player also removes the routes attached to it. */
-export function removeObject(strat: Strat, id: string): Strat {
   return {
-    ...strat,
-    objects: strat.objects.filter((o) => o.id !== id && !(o.kind === "route" && o.player === id)),
-  };
-}
-
-export function duplicateStrat(strat: Strat): Strat {
-  const now = new Date().toISOString();
-  const idMap = new Map<string, string>();
-  const objects = strat.objects.map((o) => {
-    const id = newId();
-    idMap.set(o.id, id);
-    return { ...o, id };
-  });
-  return {
-    ...strat,
+    v: STRAT_VERSION,
     id: newId(),
-    name: `${strat.name} (copy)`,
-    objects: objects.map((o) => (o.kind === "route" && o.player ? { ...o, player: idMap.get(o.player) ?? null } : o)),
+    name,
+    map,
+    side,
+    call: "",
+    notes: "",
+    steps: [newStep("Step 1")],
     createdAt: now,
     updatedAt: now,
   };
 }
 
+export function enemyOf(side: Side): Side {
+  return side === "T" ? "CT" : "T";
+}
+
+/** The lowest free number (1–5) for a team, or null when all five are placed. */
+export function nextPlayerNumber(scene: Pick<Scene, "objects">, team: Side): number | null {
+  const used = new Set(scene.objects.filter((o): o is PlacedPlayer => o.kind === "player" && o.team === team).map((o) => o.n));
+  for (let n = 1; n <= 5; n++) if (!used.has(n)) return n;
+  return null;
+}
+
+/** Removes an object; removing a player also removes the routes attached to it. */
+export function removeObject(objects: BoardObject[], id: string): BoardObject[] {
+  return objects.filter((o) => o.id !== id && !(o.kind === "route" && o.player === id));
+}
+
+/** Copies objects with fresh ids, keeping routes attached to the copied players. */
+export function cloneObjects(objects: BoardObject[]): BoardObject[] {
+  const idMap = new Map<string, string>();
+  const copies = objects.map((o) => {
+    const id = newId();
+    idMap.set(o.id, id);
+    return { ...o, id };
+  });
+  return copies.map((o) => (o.kind === "route" && o.player ? { ...o, player: idMap.get(o.player) ?? null } : o));
+}
+
+/**
+ * The next step in a sequence starts where this one ends: players stand
+ * where their routes finished, with no routes yet. Grenades, notes and
+ * drawings stay behind; the bomb carries over if it was planted.
+ */
+export function continueStep(step: Step, name: string): Step {
+  // Where each player ends up: the last point of their latest route.
+  const ends = new Map<string, Pt>();
+  const latest = new Map<string, number>();
+  for (const o of step.objects) {
+    if (o.kind !== "route" || !o.player) continue;
+    if (o.t >= (latest.get(o.player) ?? -1)) {
+      latest.set(o.player, o.t);
+      ends.set(o.player, o.points[o.points.length - 1]);
+    }
+  }
+  const carried: BoardObject[] = step.objects.flatMap((o): BoardObject[] => {
+    if (o.kind === "player") {
+      const end = ends.get(o.id);
+      return [{ ...o, ...(end ?? { x: o.x, y: o.y }) }];
+    }
+    if (o.kind === "bomb") return [{ ...o, t: 0 }];
+    return [];
+  });
+  return newStep(name, cloneObjects(carried));
+}
+
+export function duplicateStrat(strat: Strat): Strat {
+  const now = new Date().toISOString();
+  return {
+    ...strat,
+    id: newId(),
+    name: `${strat.name} (copy)`,
+    steps: strat.steps.map((s) => ({ ...s, id: newId(), objects: cloneObjects(s.objects) })),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** Moves item `from` to index `to`. */
+export function move<T>(list: T[], from: number, to: number): T[] {
+  if (to < 0 || to >= list.length || from === to) return list;
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+/** Only http(s) links are kept; anything else (javascript:, data:) is dropped. */
+export function safeUrl(v: string): string {
+  const trimmed = v.trim();
+  if (!trimmed) return "";
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+/** The YouTube video id in a youtube.com or youtu.be link, if any. */
+export function youtubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\.|^m\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (host === "youtube.com") {
+      if (u.searchParams.get("v")) return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{6,})/);
+      return m ? m[1] : null;
+    }
+  } catch {
+    /* not a url */
+  }
+  return null;
+}
+
 // ---------- validation (shared links and storage are untrusted) ----------
 
 const UTILITY: UtilityType[] = ["smoke", "flash", "molotov", "he"];
-const MAX_OBJECTS = 300;
-const MAX_POINTS = 200;
+const MAX_OBJECTS = 400;
+const MAX_POINTS = 400;
+const MAX_STEPS = 12;
 
 function str(v: unknown, max: number, fallback = ""): string {
   return typeof v === "string" ? v.slice(0, max) : fallback;
@@ -76,6 +167,9 @@ function pt(v: unknown): Pt | null {
   const y = coord(o.y);
   return x === null || y === null ? null : { x, y };
 }
+function points(v: unknown): Pt[] {
+  return Array.isArray(v) ? v.slice(0, MAX_POINTS).map(pt).filter((p): p is Pt => p !== null) : [];
+}
 
 function parseObject(v: unknown): BoardObject | null {
   if (!v || typeof v !== "object") return null;
@@ -88,17 +182,25 @@ function parseObject(v: unknown): BoardObject | null {
       const p = pt(o);
       const n = num(o.n, 1, 5);
       if (!p || n === null || (o.team !== "T" && o.team !== "CT")) return null;
-      return { id, kind: "player", team: o.team, n: Math.round(n), role: str(o.role, 24), ...p };
+      const facing = num(o.facing, -720, 720);
+      return {
+        id,
+        kind: "player",
+        team: o.team,
+        n: Math.round(n),
+        role: str(o.role, 24),
+        facing: facing === null ? null : ((Math.round(facing) % 360) + 360) % 360,
+        ...p,
+      };
     }
     case "route": {
-      if (!Array.isArray(o.points)) return null;
-      const points = o.points.slice(0, MAX_POINTS).map(pt).filter((p): p is Pt => p !== null);
-      if (points.length < 2) return null;
+      const pts = points(o.points);
+      if (pts.length < 2) return null;
       return {
         id,
         kind: "route",
         player: typeof o.player === "string" ? o.player.slice(0, 40) : null,
-        points,
+        points: pts,
         t,
         duration: num(o.duration, 0.1, 120) ?? 1,
       };
@@ -114,23 +216,64 @@ function parseObject(v: unknown): BoardObject | null {
       if (!p || !text) return null;
       return { id, kind: "text", text, t, ...p };
     }
+    case "bomb": {
+      const p = pt(o);
+      return p ? { id, kind: "bomb", t, ...p } : null;
+    }
+    case "drawing": {
+      const pts = points(o.points);
+      if (pts.length < 2) return null;
+      const color = typeof o.color === "string" && o.color in PEN_COLORS ? (o.color as PenColor) : "chalk";
+      return { id, kind: "drawing", points: pts, color };
+    }
+    case "lineup": {
+      const p = pt(o);
+      if (!p) return null;
+      return { id, kind: "lineup", title: str(o.title, 60), url: safeUrl(str(o.url, 500)), ...p };
+    }
     default:
       return null;
   }
 }
 
-/** Turns untrusted JSON into a valid strat, dropping anything malformed. Null when it isn't a strat at all. */
-export function parseStrat(v: unknown): Strat | null {
-  if (!v || typeof v !== "object") return null;
-  const o = v as Record<string, unknown>;
-  if (o.v !== STRAT_VERSION || !isMapId(o.map) || (o.side !== "T" && o.side !== "CT")) return null;
-  const objects = (Array.isArray(o.objects) ? o.objects : [])
+function parseObjects(v: unknown): BoardObject[] {
+  const objects = (Array.isArray(v) ? v : [])
     .slice(0, MAX_OBJECTS)
     .map(parseObject)
     .filter((x): x is BoardObject => x !== null);
-  // Routes may only point at players that exist.
+  // Routes may only point at players that exist; only one bomb per step.
   const players = new Set(objects.filter((x) => x.kind === "player").map((x) => x.id));
-  const clean = objects.map((x) => (x.kind === "route" && x.player && !players.has(x.player) ? { ...x, player: null } : x));
+  let bombSeen = false;
+  return objects
+    .filter((x) => {
+      if (x.kind !== "bomb") return true;
+      if (bombSeen) return false;
+      bombSeen = true;
+      return true;
+    })
+    .map((x) => (x.kind === "route" && x.player && !players.has(x.player) ? { ...x, player: null } : x));
+}
+
+/**
+ * Turns untrusted JSON into a valid strat, dropping anything malformed.
+ * Reads version 1 (a single board) as a one-step strat. Null when it isn't a strat at all.
+ */
+export function parseStrat(v: unknown): Strat | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  if ((o.v !== 1 && o.v !== STRAT_VERSION) || !isMapId(o.map) || (o.side !== "T" && o.side !== "CT")) return null;
+
+  let steps: Step[];
+  if (o.v === 1) {
+    steps = [{ id: newId(), name: "Step 1", objects: parseObjects(o.objects) }];
+  } else {
+    steps = (Array.isArray(o.steps) ? o.steps : [])
+      .slice(0, MAX_STEPS)
+      .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
+      .map((s, i) => ({ id: str(s.id, 40) || newId(), name: str(s.name, 40) || `Step ${i + 1}`, objects: parseObjects(s.objects) }));
+    if (steps.length === 0) steps = [newStep("Step 1")];
+  }
+
   const now = new Date().toISOString();
   return {
     v: STRAT_VERSION,
@@ -140,7 +283,7 @@ export function parseStrat(v: unknown): Strat | null {
     side: o.side,
     call: str(o.call, 300),
     notes: str(o.notes, 2000),
-    objects: clean,
+    steps,
     createdAt: str(o.createdAt, 40) || now,
     updatedAt: str(o.updatedAt, 40) || now,
   };
@@ -151,10 +294,22 @@ export function compact(strat: Strat): Strat {
   const r = (p: Pt): Pt => ({ x: Math.round(p.x), y: Math.round(p.y) });
   return {
     ...strat,
-    objects: strat.objects.map((o) => {
-      if (o.kind === "route") return { ...o, points: o.points.map(r), t: round1(o.t), duration: round1(o.duration) };
-      if (o.kind === "player") return { ...o, ...r(o) };
-      return { ...o, ...r(o), t: round1(o.t) };
-    }),
+    steps: strat.steps.map((s) => ({
+      ...s,
+      objects: s.objects.map((o): BoardObject => {
+        switch (o.kind) {
+          case "route":
+            return { ...o, points: o.points.map(r), t: round1(o.t), duration: round1(o.duration) };
+          case "drawing":
+            return { ...o, points: o.points.map(r) };
+          case "player":
+            return { ...o, ...r(o) };
+          case "lineup":
+            return { ...o, ...r(o) };
+          default:
+            return { ...o, ...r(o), t: round1(o.t) };
+        }
+      }),
+    })),
   };
 }

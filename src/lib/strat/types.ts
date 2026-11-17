@@ -2,13 +2,14 @@ import type { MapId } from "@/lib/maps";
 
 export type Side = "T" | "CT";
 export type UtilityType = "smoke" | "flash" | "molotov" | "he";
+export type PenColor = "chalk" | "t" | "ct" | "red" | "green";
 
 export interface Pt {
   x: number;
   y: number;
 }
 
-/** A player token. Its x/y is where it stands at the start of the round. */
+/** A player token. Its x/y is where it stands at the start of the step. */
 export interface PlayerObject {
   id: string;
   kind: "player";
@@ -17,13 +18,15 @@ export interface PlayerObject {
   n: number;
   /** Short role shown under the token, e.g. "Entry", "AWP", "Lurk". */
   role: string;
+  /** Where the player is looking, in degrees (0 = east, 90 = south). Null = no view cone. */
+  facing: number | null;
 }
 
 export interface PlacedPlayer extends PlayerObject, Pt {}
 
 /**
  * A movement path. When attached to a player, the player walks it from
- * `t` to `t + duration` seconds into the round. Unattached = a plain arrow.
+ * `t` to `t + duration` seconds into the step. Unattached = a plain arrow.
  */
 export interface RouteObject {
   id: string;
@@ -38,7 +41,7 @@ export interface UtilityObject extends Pt {
   id: string;
   kind: "utility";
   type: UtilityType;
-  /** Seconds into the round when it pops. */
+  /** Seconds into the step when it pops. */
   t: number;
 }
 
@@ -46,13 +49,52 @@ export interface TextObject extends Pt {
   id: string;
   kind: "text";
   text: string;
-  /** Seconds into the round when the note appears during playback. */
+  /** Seconds into the step when the note appears during playback. */
   t: number;
 }
 
-export type BoardObject = PlacedPlayer | RouteObject | UtilityObject | TextObject;
+/** The C4. One per step. */
+export interface BombObject extends Pt {
+  id: string;
+  kind: "bomb";
+  /** Seconds into the step when it's planted (shown from then on). */
+  t: number;
+}
 
-export const STRAT_VERSION = 1;
+/** A freehand pen stroke. */
+export interface DrawingObject {
+  id: string;
+  kind: "drawing";
+  points: Pt[];
+  color: PenColor;
+}
+
+/** A pin linking to a lineup video or image. */
+export interface LineupObject extends Pt {
+  id: string;
+  kind: "lineup";
+  title: string;
+  /** http(s) link to a YouTube video or an image. */
+  url: string;
+}
+
+export type BoardObject = PlacedPlayer | RouteObject | UtilityObject | TextObject | BombObject | DrawingObject | LineupObject;
+
+/** One board in a strat's sequence, e.g. "Default", "Execute", "Post-plant". */
+export interface Step {
+  id: string;
+  name: string;
+  objects: BoardObject[];
+}
+
+/** What the board and timeline need: one step's objects on a map. */
+export interface Scene {
+  map: MapId;
+  side: Side;
+  objects: BoardObject[];
+}
+
+export const STRAT_VERSION = 2;
 
 export interface Strat {
   v: typeof STRAT_VERSION;
@@ -64,7 +106,7 @@ export interface Strat {
   call: string;
   /** Free notes: abort call, fallback, variations. */
   notes: string;
-  objects: BoardObject[];
+  steps: Step[];
   createdAt: string;
   updatedAt: string;
 }
@@ -91,3 +133,16 @@ export const UTILITY_LABEL: Record<UtilityType, string> = {
   molotov: "Molotov",
   he: "HE grenade",
 };
+
+export const PEN_COLORS: Record<PenColor, { label: string; css: string }> = {
+  chalk: { label: "Chalk", css: "var(--chalk)" },
+  t: { label: "T orange", css: "var(--t)" },
+  ct: { label: "CT blue", css: "var(--ct)" },
+  red: { label: "Red", css: "var(--pen-red)" },
+  green: { label: "Green", css: "var(--pen-green)" },
+};
+
+/** The step a scene is built from. */
+export function sceneOf(strat: Strat, step: Step): Scene {
+  return { map: strat.map, side: strat.side, objects: step.objects };
+}

@@ -6,16 +6,21 @@ link that opens without an account.
 
 ## What's in this version
 
-- **Board** (`src/components/board.tsx`): SVG, 1000×1000 units. Tools: select/move, T and CT players (auto-numbered
-  1–5), routes (drag from a player to attach; drag on empty ground for a plain arrow), smoke, flash, molotov, HE, notes.
-- **Timing**: every route, grenade and note has a time in the round. Play, scrub, or jump to an event from the
-  timeline. Players walk their routes at running speed; grenades stay up for their real duration.
-- **Library**: strats are saved in the browser (localStorage), with duplicate and delete. Two example strats:
-  Mirage A Execute and Dust II Long A Take.
-- **Share links**: the whole strat is compressed into the URL fragment (`/view#…`), so nothing is stored on a
-  server. The viewer shows the board, playback, roles, utility order and notes, and can save a copy to edit.
-- **Editing**: undo/redo (a whole drag undoes in one step), keyboard shortcuts (V, 1, 2, R, S, F, M, H, N, Space
-  to play, Delete, Ctrl+Z).
+- **Board** (`src/components/board.tsx`): SVG, 1000×1000 units. Tools: select/move, teammates and enemies (the
+  side you play decides which colour each is; enemies are square), view cones ("where they look", dragged out
+  from a player), routes, pen (5 colours), eraser (click or drag over anything), notes, smoke, flash, molotov,
+  HE, the bomb (one C4 per step) and lineup pins that link to a YouTube video or an image.
+- **Steps**: a strat is a sequence of boards (e.g. Execute → Post-plant). Add, rename, reorder, delete, or
+  continue from a step: the next step starts with everyone where their routes ended.
+- **Timing**: every route, grenade, note and the bomb plant has a time in the step. Play, scrub, or jump to an
+  event; the clock shows the 1:55 round timer.
+- **Saving**: strats, the open step, the last tool and the pen colour are kept in the browser's local storage.
+  Changes save automatically; the Save button (Ctrl+S) saves right away and shows when it last did. Clear board
+  and Delete strategy both ask first; clearing can be undone.
+- **Library and share links**: duplicate, delete, two example strats. Share links carry the whole strat in the
+  URL fragment (`/view#…`); the viewer shows every step, roles, utility order, lineup links and notes.
+- **Editing**: undo/redo across steps (a drag or a burst of typing is one step), keyboard shortcuts
+  (V, 1, 2, D, R, P, E, N, S, F, M, H, B, L, Space to play, Delete, Ctrl+Z, Ctrl+S).
 
 Maps are our own simplified layouts built from named areas, cover and callouts (`src/lib/maps`), not Valve's radar images, which
 are © Valve. Named areas also make it possible to check plans against demos later ("smoke landed in Jungle").

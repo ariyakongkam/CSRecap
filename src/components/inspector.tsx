@@ -1,24 +1,43 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { MAPS, MAP_IDS, areaAt, type MapId } from "@/lib/maps";
+import { ExternalLink, Trash2 } from "lucide-react";
+import { MAPS, areaAt } from "@/lib/maps";
 import { round1 } from "@/lib/strat/geometry";
-import { removeObject } from "@/lib/strat/model";
+import { removeObject, safeUrl, youtubeId } from "@/lib/strat/model";
 import { routesOf } from "@/lib/strat/timeline";
-import { UTILITY_DURATION, UTILITY_LABEL, type BoardObject, type PlacedPlayer, type Side, type Strat, type UtilityType } from "@/lib/strat/types";
+import {
+  PEN_COLORS,
+  UTILITY_DURATION,
+  UTILITY_LABEL,
+  type BoardObject,
+  type LineupObject,
+  type PenColor,
+  type PlacedPlayer,
+  type Scene,
+  type Side,
+  type Strat,
+  type UtilityType,
+} from "@/lib/strat/types";
 
 interface Props {
   strat: Strat;
+  scene: Scene;
   selected: BoardObject | null;
-  onCommit: (next: Strat) => void;
+  onObjects: (objects: BoardObject[]) => void;
+  onStrat: (next: Strat) => void;
   onSelect: (id: string | null) => void;
+  onPickMap: () => void;
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <span className="label">{children}</span>;
-}
-
-function NumberField({ label, value, onChange, min = 0, max = 120, step = 0.5, suffix }: {
+function NumberField({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max = 120,
+  step = 0.5,
+  suffix,
+}: {
   label: string;
   value: number;
   onChange: (v: number) => void;
@@ -29,7 +48,7 @@ function NumberField({ label, value, onChange, min = 0, max = 120, step = 0.5, s
 }) {
   return (
     <label className="block">
-      <Label>{label}</Label>
+      <span className="label">{label}</span>
       <div className="flex items-center gap-2">
         <input
           type="number"
@@ -49,21 +68,28 @@ function NumberField({ label, value, onChange, min = 0, max = 120, step = 0.5, s
   );
 }
 
-export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
-  const update = (o: BoardObject) => onCommit({ ...strat, objects: strat.objects.map((x) => (x.id === o.id ? o : x)) });
+const COMPASS = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
+
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap }: Props) {
+  const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
 
   if (selected) {
-    const where = "x" in selected ? areaAt(map, selected.x, selected.y)?.name : selected.kind === "route" ? areaAt(map, selected.points.at(-1)!.x, selected.points.at(-1)!.y)?.name : undefined;
+    const at =
+      "x" in selected
+        ? areaAt(map, selected.x, selected.y)?.name
+        : selected.kind === "route"
+          ? areaAt(map, selected.points.at(-1)!.x, selected.points.at(-1)!.y)?.name
+          : undefined;
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">{describe(selected, strat)}</h2>
+          <h2 className="font-display text-xl font-semibold">{describe(selected, scene)}</h2>
           <button
             type="button"
             className="btn btn-icon text-danger"
             onClick={() => {
-              onCommit(removeObject(strat, selected.id));
+              onObjects(removeObject(scene.objects, selected.id));
               onSelect(null);
             }}
             title="Delete (Del)"
@@ -72,46 +98,75 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
             <Trash2 className="size-4" />
           </button>
         </div>
-        {where && <p className="text-sm text-muted">{selected.kind === "route" ? "Ends in" : "In"} {where}</p>}
+        {at && (
+          <p className="text-sm text-muted">
+            {selected.kind === "route" ? "Ends in" : "In"} {at}
+          </p>
+        )}
 
         {selected.kind === "player" && (
           <>
             <label className="block">
-              <Label>Role</Label>
+              <span className="label">Role</span>
               <input
                 className="field"
                 value={selected.role}
                 maxLength={24}
-                placeholder="Entry, AWP, Lurk…"
+                placeholder={selected.team === strat.side ? "Entry, AWP, Lurk…" : "Anchor, AWP, Rotator…"}
                 onChange={(e) => update({ ...selected, role: e.target.value })}
               />
             </label>
-            <p className="text-sm text-muted">
-              {routesOf(strat, selected.id).length === 0
-                ? "No route yet. Pick the route tool (R) and drag from this player."
-                : `${routesOf(strat, selected.id).length} route(s). Click a route to change its timing.`}
-            </p>
+            <fieldset>
+              <legend className="label">Where they look</legend>
+              {selected.facing === null ? (
+                <button type="button" className="btn w-full" onClick={() => update({ ...selected, facing: selected.team === "T" ? 180 : 0 })}>
+                  Add view cone
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={359}
+                    value={selected.facing}
+                    onChange={(e) => update({ ...selected, facing: Number(e.target.value) })}
+                    aria-label="View direction in degrees"
+                    aria-valuetext={COMPASS[Math.round(selected.facing / 45) % 8]}
+                    className="w-full accent-[var(--chalk)]"
+                  />
+                  <div className="flex items-center justify-between text-sm text-muted">
+                    <span>Facing {COMPASS[Math.round(selected.facing / 45) % 8]}</span>
+                    <button type="button" className="btn" onClick={() => update({ ...selected, facing: null })}>
+                      Remove cone
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="mt-2 text-sm text-muted">Or pick the radar tool (D) and drag from a player to aim the cone.</p>
+            </fieldset>
+            {selected.team === strat.side && (
+              <p className="text-sm text-muted">
+                {routesOf(scene, selected.id).length === 0
+                  ? "No route yet. Pick the route tool (R) and drag from this player."
+                  : `${routesOf(scene, selected.id).length} route(s) in this step. Click a route to change its timing.`}
+              </p>
+            )}
           </>
         )}
 
         {selected.kind === "route" && (
           <>
             <label className="block">
-              <Label>Who walks it</Label>
-              <select
-                className="field"
-                value={selected.player ?? ""}
-                onChange={(e) => update({ ...selected, player: e.target.value || null })}
-              >
+              <span className="label">Who walks it</span>
+              <select className="field" value={selected.player ?? ""} onChange={(e) => update({ ...selected, player: e.target.value || null })}>
                 <option value="">Nobody (plain arrow)</option>
-                {strat.objects
+                {scene.objects
                   .filter((o): o is PlacedPlayer => o.kind === "player")
                   .sort((a, b) => a.team.localeCompare(b.team) || a.n - b.n)
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.team}
-                      {p.n}
-                      {p.role ? ` · ${p.role}` : ""}
+                      {p.team === strat.side ? "Teammate" : "Enemy"} {p.n}
+                      {p.role ? `, ${p.role}` : ""}
                     </option>
                   ))}
               </select>
@@ -126,7 +181,7 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
         {selected.kind === "utility" && (
           <>
             <label className="block">
-              <Label>Grenade</Label>
+              <span className="label">Grenade</span>
               <select className="field" value={selected.type} onChange={(e) => update({ ...selected, type: e.target.value as UtilityType })}>
                 {(Object.keys(UTILITY_LABEL) as UtilityType[]).map((t) => (
                   <option key={t} value={t}>
@@ -140,75 +195,96 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
           </>
         )}
 
+        {selected.kind === "bomb" && <NumberField label="Planted at" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />}
+
         {selected.kind === "text" && (
           <>
             <label className="block">
-              <Label>Text</Label>
+              <span className="label">Text</span>
               <input className="field" value={selected.text} maxLength={120} onChange={(e) => update({ ...selected, text: e.target.value })} />
             </label>
             <NumberField label="Shows from" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />
           </>
         )}
+
+        {selected.kind === "drawing" && (
+          <fieldset>
+            <legend className="label">Colour</legend>
+            <div className="flex gap-2">
+              {(Object.keys(PEN_COLORS) as PenColor[]).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={selected.color === c}
+                  aria-label={PEN_COLORS[c].label}
+                  title={PEN_COLORS[c].label}
+                  onClick={() => update({ ...selected, color: c })}
+                  className={`grid size-11 place-items-center rounded-lg border ${selected.color === c ? "border-chalk" : "border-line"}`}
+                >
+                  <span className="size-5 rounded-full" style={{ background: PEN_COLORS[c].css }} />
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        {selected.kind === "lineup" && <LineupFields key={selected.id} lineup={selected} onChange={update} />}
       </div>
     );
   }
 
-  const roster = strat.objects
-    .filter((o): o is PlacedPlayer => o.kind === "player")
-    .sort((a, b) => a.team.localeCompare(b.team) || a.n - b.n);
+  const roster = scene.objects
+    .filter((o): o is PlacedPlayer => o.kind === "player" && o.team === strat.side)
+    .sort((a, b) => a.n - b.n);
 
   return (
     <div className="space-y-4">
       <h2 className="font-display text-xl font-semibold">Strat details</h2>
       <label className="block">
-        <Label>Name</Label>
-        <input className="field" value={strat.name} maxLength={80} onChange={(e) => onCommit({ ...strat, name: e.target.value })} />
+        <span className="label">Name</span>
+        <input className="field" value={strat.name} maxLength={80} onChange={(e) => onStrat({ ...strat, name: e.target.value })} />
       </label>
       <div className="grid grid-cols-2 gap-3">
+        <div>
+          <span className="label">Map</span>
+          <button type="button" className="btn w-full justify-between" onClick={onPickMap}>
+            {map.name} <span className="text-sm text-muted">Change</span>
+          </button>
+        </div>
         <label className="block">
-          <Label>Map</Label>
-          <select className="field" value={strat.map} onChange={(e) => onCommit({ ...strat, map: e.target.value as MapId })}>
-            {MAP_IDS.map((id) => (
-              <option key={id} value={id}>
-                {MAPS[id].name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <Label>Side</Label>
-          <select className="field" value={strat.side} onChange={(e) => onCommit({ ...strat, side: e.target.value as Side })}>
+          <span className="label">Your side</span>
+          <select className="field" value={strat.side} onChange={(e) => onStrat({ ...strat, side: e.target.value as Side })}>
             <option value="T">T side</option>
             <option value="CT">CT side</option>
           </select>
         </label>
       </div>
       <label className="block">
-        <Label>When to call it</Label>
+        <span className="label">When to call it</span>
         <textarea
           className="field min-h-16"
           value={strat.call}
           maxLength={300}
           placeholder="e.g. after two quiet rounds on A, at 1:15"
-          onChange={(e) => onCommit({ ...strat, call: e.target.value })}
+          onChange={(e) => onStrat({ ...strat, call: e.target.value })}
         />
       </label>
       <label className="block">
-        <Label>Notes</Label>
+        <span className="label">Notes</span>
         <textarea
           className="field min-h-36"
           value={strat.notes}
           maxLength={2000}
           placeholder="Abort call, fallback, variations"
-          onChange={(e) => onCommit({ ...strat, notes: e.target.value })}
+          onChange={(e) => onStrat({ ...strat, notes: e.target.value })}
         />
       </label>
       <div>
-        <Label>Roles</Label>
+        <span className="label">Roles in this step</span>
         {roster.length === 0 ? (
-          <p className="text-sm text-muted">No players yet. Pick the T or CT tool and click the map.</p>
+          <p className="text-sm text-muted">No teammates yet. Pick the teammate tool (1) and click the map.</p>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {roster.map((p) => (
               <li key={p.id}>
                 <button
@@ -216,7 +292,9 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
                   onClick={() => onSelect(p.id)}
                   className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm hover:bg-panel-2"
                 >
-                  <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-team-t" : "bg-team-ct"}`}>{p.n}</span>
+                  <span className={`grid size-6 place-items-center rounded-full text-xs font-black text-bg ${p.team === "T" ? "bg-team-t" : "bg-team-ct"}`}>
+                    {p.n}
+                  </span>
                   <span className={p.role ? "" : "text-faint"}>{p.role || "No role yet"}</span>
                 </button>
               </li>
@@ -228,17 +306,72 @@ export function Inspector({ strat, selected, onCommit, onSelect }: Props) {
   );
 }
 
-function describe(o: BoardObject, strat: Strat): string {
+function LineupFields({ lineup, onChange }: { lineup: LineupObject; onChange: (o: BoardObject) => void }) {
+  const yt = lineup.url ? youtubeId(lineup.url) : null;
+  const looksLikeImage = /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(lineup.url);
+  return (
+    <>
+      <label className="block">
+        <span className="label">Title</span>
+        <input
+          className="field"
+          value={lineup.title}
+          maxLength={60}
+          placeholder="e.g. Jungle smoke from A Ramp"
+          onChange={(e) => onChange({ ...lineup, title: e.target.value })}
+        />
+      </label>
+      <label className="block">
+        <span className="label">YouTube or image link</span>
+        <input
+          className="field"
+          type="url"
+          inputMode="url"
+          defaultValue={lineup.url}
+          placeholder="https://youtu.be/…"
+          onBlur={(e) => {
+            const url = safeUrl(e.target.value);
+            e.target.value = url;
+            if (url !== lineup.url) onChange({ ...lineup, url });
+          }}
+        />
+        <span className="mt-1 block text-xs text-muted">Paste a link, then click outside the box. Only http and https links are kept.</span>
+      </label>
+      {lineup.url && (
+        <div className="space-y-2">
+          {yt ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-video w-full rounded-lg border border-line object-cover" />
+          ) : looksLikeImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={lineup.url} alt="" className="max-h-56 w-full rounded-lg border border-line object-contain" />
+          ) : null}
+          <a href={lineup.url} target="_blank" rel="noopener noreferrer" className="btn w-full">
+            <ExternalLink className="size-4" /> Open lineup
+          </a>
+        </div>
+      )}
+    </>
+  );
+}
+
+function describe(o: BoardObject, scene: Scene): string {
   switch (o.kind) {
     case "player":
-      return `${o.team} player ${o.n}`;
+      return `${o.team === scene.side ? "Teammate" : "Enemy"} ${o.n} (${o.team})`;
     case "route": {
-      const p = o.player ? strat.objects.find((x) => x.id === o.player) : undefined;
-      return p && p.kind === "player" ? `Route · ${p.team}${p.n}` : "Arrow";
+      const p = o.player ? scene.objects.find((x) => x.id === o.player) : undefined;
+      return p && p.kind === "player" ? `Route of ${p.team === scene.side ? "teammate" : "enemy"} ${p.n}` : "Arrow";
     }
     case "utility":
       return UTILITY_LABEL[o.type];
     case "text":
       return "Note";
+    case "bomb":
+      return "Bomb (C4)";
+    case "drawing":
+      return "Pen drawing";
+    case "lineup":
+      return "Lineup";
   }
 }

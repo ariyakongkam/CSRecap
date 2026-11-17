@@ -48,3 +48,27 @@ export function deleteStrat(id: string): void {
   delete all[id];
   writeAll(all);
 }
+
+// ---------- small UI preferences (last tool, pen colour, open step per strat) ----------
+
+const PREFS_KEY = "execute:prefs:v1";
+
+export function loadPref<T>(key: string, fallback: T, valid: (v: unknown) => v is T): T {
+  try {
+    const all = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}");
+    const v = all?.[key];
+    return valid(v) ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function savePref(key: string, value: unknown): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}") ?? {};
+    all[key] = value;
+    localStorage.setItem(PREFS_KEY, JSON.stringify(all));
+  } catch {
+    /* preferences are a convenience; ignore */
+  }
+}

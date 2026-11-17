@@ -3,21 +3,34 @@ import { describe, expect, it } from "vitest";
 import { MAPS, areaAt } from "@/lib/maps";
 import { pathLength, pointAlong, simplify } from "./geometry";
 import * as H from "./history";
-import { createStrat, duplicateStrat, nextPlayerNumber, parseStrat, removeObject } from "./model";
+import {
+  cloneObjects,
+  continueStep,
+  createStrat,
+  duplicateStrat,
+  move,
+  newStep,
+  nextPlayerNumber,
+  parseStrat,
+  removeObject,
+  safeUrl,
+  youtubeId,
+} from "./model";
 import { decodeStrat, encodeStrat } from "./share";
 import { TEMPLATES } from "./templates";
 import { nextRouteStart, playerPositionAt, stratDuration, visibilityAt, walkDuration, RUN_SPEED } from "./timeline";
-import type { PlacedPlayer, RouteObject, Strat, UtilityObject } from "./types";
+import type { BoardObject, PlacedPlayer, RouteObject, Scene, UtilityObject } from "./types";
 
-function withPlayer(): { strat: Strat; p: PlacedPlayer } {
-  const strat = createStrat("mirage", "T", "Test");
-  const p: PlacedPlayer = { id: "p1", kind: "player", team: "T", n: 1, role: "Entry", x: 100, y: 100 };
-  strat.objects.push(p);
-  return { strat, p };
+function scene(objects: BoardObject[] = []): Scene {
+  return { map: "mirage", side: "T", objects };
 }
 
-function route(id: string, player: string | null, points: [number, number][], t: number, duration: number): RouteObject {
-  return { id, kind: "route", player, points: points.map(([x, y]) => ({ x, y })), t, duration };
+function player(over: Partial<PlacedPlayer> = {}): PlacedPlayer {
+  return { id: "p1", kind: "player", team: "T", n: 1, role: "Entry", facing: null, x: 100, y: 100, ...over };
+}
+
+function route(id: string, playerId: string | null, points: [number, number][], t: number, duration: number): RouteObject {
+  return { id, kind: "route", player: playerId, points: points.map(([x, y]) => ({ x, y })), t, duration };
 }
 
 describe("geometry", () => {
@@ -39,22 +52,19 @@ describe("geometry", () => {
 
 describe("timing", () => {
   it("moves a player along their routes in order", () => {
-    const { strat, p } = withPlayer();
-    strat.objects.push(route("r1", "p1", [[100, 100], [200, 100]], 2, 4));
-    strat.objects.push(route("r2", "p1", [[200, 100], [200, 300]], 10, 2));
-    expect(playerPositionAt(strat, p, 0)).toEqual({ x: 100, y: 100 });
-    expect(playerPositionAt(strat, p, 4)).toEqual({ x: 150, y: 100 });
-    expect(playerPositionAt(strat, p, 8)).toEqual({ x: 200, y: 100 }); // waiting between moves
-    expect(playerPositionAt(strat, p, 11)).toEqual({ x: 200, y: 200 });
-    expect(playerPositionAt(strat, p, 60)).toEqual({ x: 200, y: 300 });
+    const p = player();
+    const s = scene([p, route("r1", "p1", [[100, 100], [200, 100]], 2, 4), route("r2", "p1", [[200, 100], [200, 300]], 10, 2)]);
+    expect(playerPositionAt(s, p, 0)).toEqual({ x: 100, y: 100 });
+    expect(playerPositionAt(s, p, 4)).toEqual({ x: 150, y: 100 });
+    expect(playerPositionAt(s, p, 8)).toEqual({ x: 200, y: 100 }); // waiting between moves
+    expect(playerPositionAt(s, p, 11)).toEqual({ x: 200, y: 200 });
+    expect(playerPositionAt(s, p, 60)).toEqual({ x: 200, y: 300 });
   });
 
   it("starts a player's next route when the previous one ends", () => {
-    const { strat } = withPlayer();
-    expect(nextRouteStart(strat, "p1")).toBe(0);
-    strat.objects.push(route("r1", "p1", [[100, 100], [200, 100]], 2, 4.5));
-    expect(nextRouteStart(strat, "p1")).toBe(6.5);
-    expect(nextRouteStart(strat, null)).toBe(0);
+    expect(nextRouteStart(scene([player()]), "p1")).toBe(0);
+    expect(nextRouteStart(scene([player(), route("r1", "p1", [[100, 100], [200, 100]], 2, 4.5)]), "p1")).toBe(6.5);
+    expect(nextRouteStart(scene(), null)).toBe(0);
   });
 
   it("times a walk at running speed", () => {
@@ -62,59 +72,86 @@ describe("timing", () => {
     expect(walkDuration([{ x: 0, y: 0 }, { x: 1, y: 0 }])).toBe(1);
   });
 
-  it("shows a grenade only while it's active", () => {
+  it("shows a grenade only while it's active, and the bomb once planted", () => {
     const smoke: UtilityObject = { id: "s", kind: "utility", type: "smoke", t: 10, x: 0, y: 0 };
     expect(visibilityAt(smoke, null).show).toBe(true);
     expect(visibilityAt(smoke, 9).show).toBe(false);
     expect(visibilityAt(smoke, 15).show).toBe(true);
     expect(visibilityAt(smoke, 29).show).toBe(false);
-    const flash: UtilityObject = { ...smoke, type: "flash" };
-    expect(visibilityAt(flash, 13).show).toBe(false);
+    expect(visibilityAt({ ...smoke, type: "flash" }, 13).show).toBe(false);
+    const bomb: BoardObject = { id: "b", kind: "bomb", t: 5, x: 0, y: 0 };
+    expect(visibilityAt(bomb, 4).show).toBe(false);
+    expect(visibilityAt(bomb, 40).show).toBe(true);
   });
 
-  it("measures how long a plan runs", () => {
-    const { strat } = withPlayer();
-    strat.objects.push(route("r1", "p1", [[0, 0], [10, 0]], 2, 4));
-    strat.objects.push({ id: "f", kind: "utility", type: "flash", t: 9, x: 0, y: 0 });
-    expect(stratDuration(strat)).toBe(11);
+  it("measures how long a step runs", () => {
+    const s = scene([player(), route("r1", "p1", [[0, 0], [10, 0]], 2, 4), { id: "f", kind: "utility", type: "flash", t: 9, x: 0, y: 0 }]);
+    expect(stratDuration(s)).toBe(11);
   });
 });
 
 describe("editing", () => {
   it("numbers players 1–5 per team, filling gaps", () => {
-    const { strat } = withPlayer();
-    expect(nextPlayerNumber(strat, "T")).toBe(2);
-    expect(nextPlayerNumber(strat, "CT")).toBe(1);
-    for (let n = 2; n <= 5; n++) strat.objects.push({ id: `p${n}`, kind: "player", team: "T", n, role: "", x: 0, y: 0 });
-    expect(nextPlayerNumber(strat, "T")).toBeNull();
-    expect(nextPlayerNumber(removeObject(strat, "p3"), "T")).toBe(3);
+    const objects: BoardObject[] = [player()];
+    expect(nextPlayerNumber(scene(objects), "T")).toBe(2);
+    expect(nextPlayerNumber(scene(objects), "CT")).toBe(1);
+    for (let n = 2; n <= 5; n++) objects.push(player({ id: `p${n}`, n }));
+    expect(nextPlayerNumber(scene(objects), "T")).toBeNull();
+    expect(nextPlayerNumber(scene(removeObject(objects, "p3")), "T")).toBe(3);
   });
 
   it("removes a player's routes with the player", () => {
-    const { strat } = withPlayer();
-    strat.objects.push(route("r1", "p1", [[0, 0], [10, 0]], 0, 1), route("arrow", null, [[0, 0], [10, 0]], 0, 1));
-    expect(removeObject(strat, "p1").objects.map((o) => o.id)).toEqual(["arrow"]);
+    const objects = [player(), route("r1", "p1", [[0, 0], [10, 0]], 0, 1), route("arrow", null, [[0, 0], [10, 0]], 0, 1)];
+    expect(removeObject(objects, "p1").map((o) => o.id)).toEqual(["arrow"]);
   });
 
   it("duplicates with fresh ids and keeps routes attached", () => {
-    const { strat } = withPlayer();
-    strat.objects.push(route("r1", "p1", [[0, 0], [10, 0]], 0, 1));
+    const strat = createStrat("mirage", "T");
+    strat.steps[0].objects.push(player(), route("r1", "p1", [[0, 0], [10, 0]], 0, 1));
     const copy = duplicateStrat(strat);
-    const p = copy.objects.find((o) => o.kind === "player")!;
-    const r = copy.objects.find((o) => o.kind === "route") as RouteObject;
+    const p = copy.steps[0].objects.find((o) => o.kind === "player")!;
+    const r = copy.steps[0].objects.find((o) => o.kind === "route") as RouteObject;
     expect(copy.id).not.toBe(strat.id);
     expect(p.id).not.toBe("p1");
     expect(r.player).toBe(p.id);
   });
 
+  it("starts the next step where everyone ended, without routes or grenades", () => {
+    const step = newStep("Execute", [
+      player({ facing: 90 }),
+      player({ id: "e1", team: "CT", n: 1, x: 500, y: 500 }),
+      route("r1", "p1", [[100, 100], [200, 100]], 0, 2),
+      route("r2", "p1", [[200, 100], [300, 300]], 5, 2),
+      { id: "s", kind: "utility", type: "smoke", t: 3, x: 0, y: 0 },
+      { id: "b", kind: "bomb", t: 8, x: 400, y: 400 },
+    ]);
+    const next = continueStep(step, "Post-plant");
+    const players = next.objects.filter((o): o is PlacedPlayer => o.kind === "player");
+    expect(next.name).toBe("Post-plant");
+    expect(players.find((p) => p.n === 1 && p.team === "T")).toMatchObject({ x: 300, y: 300, facing: 90 });
+    expect(players.find((p) => p.team === "CT")).toMatchObject({ x: 500, y: 500 });
+    expect(next.objects.some((o) => o.kind === "route" || o.kind === "utility")).toBe(false);
+    expect(next.objects.find((o) => o.kind === "bomb")).toMatchObject({ t: 0, x: 400 });
+    expect(next.objects.every((o) => !["p1", "e1", "b"].includes(o.id))).toBe(true); // fresh ids
+  });
+
+  it("reorders steps", () => {
+    expect(move(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
+    expect(move(["a", "b", "c"], 2, 1)).toEqual(["a", "c", "b"]);
+    expect(move(["a", "b"], 0, -1)).toEqual(["a", "b"]);
+  });
+
+  it("clones objects with routes still attached", () => {
+    const [p, r] = cloneObjects([player(), route("r1", "p1", [[0, 0], [1, 1]], 0, 1)]);
+    expect((r as RouteObject).player).toBe(p.id);
+  });
+
   it("undoes a whole drag in one step", () => {
     const a = createStrat("mirage", "T", "A");
-    const b = { ...a, name: "B" };
-    const c = { ...a, name: "C" };
     let h = H.initHistory(a);
     h = H.checkpoint(h);
-    h = H.live(h, b);
-    h = H.live(h, c);
+    h = H.live(h, { ...a, name: "B" });
+    h = H.live(h, { ...a, name: "C" });
     expect(h.present.name).toBe("C");
     h = H.undo(h);
     expect(h.present.name).toBe("A");
@@ -123,41 +160,82 @@ describe("editing", () => {
   });
 });
 
+describe("lineup links", () => {
+  it("keeps only http(s) links", () => {
+    expect(safeUrl("https://youtu.be/abc123")).toBe("https://youtu.be/abc123");
+    expect(safeUrl("youtube.com/watch?v=abc123")).toBe("https://youtube.com/watch?v=abc123");
+    expect(safeUrl("javascript:alert(1)")).toBe("");
+    expect(safeUrl("data:text/html,hi")).toBe("");
+    expect(safeUrl("  ")).toBe("");
+  });
+
+  it("finds the video in YouTube links", () => {
+    expect(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://youtu.be/dQw4w9WgXcQ?t=10")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://youtube.com/shorts/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(youtubeId("https://example.com/smoke.png")).toBeNull();
+  });
+});
+
 describe("share links and validation", () => {
-  it("round-trips a strat through a link", () => {
+  it("round-trips a strat with several steps through a link", () => {
     const s = TEMPLATES[0].build();
     const back = decodeStrat(encodeStrat(s))!;
     expect(back.name).toBe(s.name);
-    expect(back.objects).toHaveLength(s.objects.length);
-    expect(back.call).toBe(s.call);
+    expect(back.steps.map((x) => x.name)).toEqual(s.steps.map((x) => x.name));
+    expect(back.steps.map((x) => x.objects.length)).toEqual(s.steps.map((x) => x.objects.length));
   });
 
   it("keeps links short enough to paste in Discord", () => {
-    for (const t of TEMPLATES) expect(encodeStrat(t.build()).length).toBeLessThan(2000);
+    for (const t of TEMPLATES) expect(encodeStrat(t.build()).length).toBeLessThan(4000);
+  });
+
+  it("opens strats saved before steps existed as a one-step strat", () => {
+    const old = { v: 1, map: "mirage", side: "T", name: "Old", objects: [{ id: "a", kind: "player", team: "T", n: 1, role: "", x: 1, y: 2 }] };
+    const s = parseStrat(old)!;
+    expect(s.v).toBe(2);
+    expect(s.steps).toHaveLength(1);
+    expect(s.steps[0].objects[0]).toMatchObject({ kind: "player", facing: null });
   });
 
   it("rejects garbage and cleans up bad objects", () => {
     expect(decodeStrat("not-a-strat")).toBeNull();
-    expect(decodeStrat(compressToEncodedURIComponent(JSON.stringify({ v: 1, map: "nuke", side: "T" })))).toBeNull();
+    expect(decodeStrat(compressToEncodedURIComponent(JSON.stringify({ v: 2, map: "nuke", side: "T" })))).toBeNull();
     const s = parseStrat({
-      v: 1,
+      v: 2,
       map: "dust2",
       side: "CT",
       name: "x".repeat(500),
-      objects: [
-        { id: "a", kind: "player", team: "CT", n: 9, role: "AWP", x: 5000, y: 10 },
-        { id: "b", kind: "route", player: "ghost", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], t: 0, duration: 2 },
-        { id: "c", kind: "utility", type: "nuke", x: 0, y: 0, t: 0 },
-        { id: "d", kind: "text", text: "", x: 0, y: 0, t: 0 },
+      steps: [
+        {
+          id: "s1",
+          name: "One",
+          objects: [
+            { id: "a", kind: "player", team: "CT", n: 9, role: "AWP", facing: 450, x: 5000, y: 10 },
+            { id: "b", kind: "route", player: "ghost", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], t: 0, duration: 2 },
+            { id: "c", kind: "utility", type: "nuke", x: 0, y: 0, t: 0 },
+            { id: "d", kind: "text", text: "", x: 0, y: 0, t: 0 },
+            { id: "e", kind: "bomb", x: 1, y: 1, t: 0 },
+            { id: "f", kind: "bomb", x: 2, y: 2, t: 0 },
+            { id: "g", kind: "lineup", title: "x", url: "javascript:alert(1)", x: 3, y: 3 },
+            { id: "h", kind: "drawing", color: "purple", points: [{ x: 0, y: 0 }, { x: 5, y: 5 }] },
+            "junk",
+          ],
+        },
         "junk",
       ],
     })!;
+    const objects = s.steps[0].objects;
     expect(s.name).toHaveLength(80);
-    expect(s.objects.map((o) => o.id)).toEqual(["a", "b"]);
-    const p = s.objects[0] as PlacedPlayer;
+    expect(s.steps).toHaveLength(1);
+    expect(objects.map((o) => o.id)).toEqual(["a", "b", "e", "g", "h"]); // one bomb per step
+    const p = objects[0] as PlacedPlayer;
     expect(p.n).toBe(5);
     expect(p.x).toBe(1050);
-    expect((s.objects[1] as RouteObject).player).toBeNull(); // pointed at a player that doesn't exist
+    expect(p.facing).toBe(90);
+    expect((objects[1] as RouteObject).player).toBeNull(); // pointed at a player that doesn't exist
+    expect(objects[3]).toMatchObject({ url: "" });
+    expect(objects[4]).toMatchObject({ color: "chalk" });
   });
 });
 
@@ -165,24 +243,29 @@ describe("templates", () => {
   it("build valid strats that survive validation", () => {
     for (const t of TEMPLATES) {
       const s = t.build();
-      expect(parseStrat(JSON.parse(JSON.stringify(s)))?.objects).toHaveLength(s.objects.length);
+      const back = parseStrat(JSON.parse(JSON.stringify(s)))!;
+      expect(back.steps.map((x) => x.objects.length)).toEqual(s.steps.map((x) => x.objects.length));
     }
   });
 
-  it("put the Mirage execute's smokes where the plan says", () => {
+  it("put the Mirage execute's smokes where the plan says, and plant in the post-plant step", () => {
     const s = TEMPLATES.find((t) => t.id === "mirage-a-execute")!.build();
-    const smokes = s.objects.filter((o): o is UtilityObject => o.kind === "utility" && o.type === "smoke");
+    expect(s.steps.map((x) => x.name)).toEqual(["Execute", "Post-plant"]);
+    const smokes = s.steps[0].objects.filter((o): o is UtilityObject => o.kind === "utility" && o.type === "smoke");
     expect(smokes.map((u) => areaAt(MAPS.mirage, u.x, u.y)?.name).sort()).toEqual(["CT Spawn", "Jungle", "Stairs"]);
+    const bomb = s.steps[1].objects.find((o) => o.kind === "bomb")!;
+    expect(areaAt(MAPS.mirage, (bomb as { x: number }).x, (bomb as { y: number }).y)?.name).toBe("A Site");
   });
 
   it("chain each player's routes without overlap", () => {
     for (const t of TEMPLATES) {
-      const s = t.build();
-      for (const p of s.objects.filter((o) => o.kind === "player")) {
-        const rs = s.objects.filter((o): o is RouteObject => o.kind === "route" && o.player === p.id).sort((a, b) => a.t - b.t);
-        for (let i = 1; i < rs.length; i++) {
-          expect(rs[i].t).toBeGreaterThanOrEqual(rs[i - 1].t + rs[i - 1].duration - 0.05);
-          expect(rs[i].points[0]).toEqual(rs[i - 1].points.at(-1));
+      for (const step of t.build().steps) {
+        for (const p of step.objects.filter((o) => o.kind === "player")) {
+          const rs = step.objects.filter((o): o is RouteObject => o.kind === "route" && o.player === p.id).sort((a, b) => a.t - b.t);
+          for (let i = 1; i < rs.length; i++) {
+            expect(rs[i].t).toBeGreaterThanOrEqual(rs[i - 1].t + rs[i - 1].duration - 0.05);
+            expect(rs[i].points[0]).toEqual(rs[i - 1].points.at(-1));
+          }
         }
       }
     }

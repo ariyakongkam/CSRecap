@@ -1,69 +1,136 @@
 "use client";
 
-import { ArrowLeft, Check, Link2, Redo2, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Board, type Tool } from "@/components/board";
+import { ConfirmDialog, Modal } from "@/components/dialog";
 import { Inspector } from "@/components/inspector";
 import { Logo } from "@/components/logo";
+import { MapCard } from "@/components/map-card";
+import { StepBar } from "@/components/step-bar";
 import { Timeline } from "@/components/timeline";
 import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
-import { MAPS } from "@/lib/maps";
+import { MAPS, MAP_IDS } from "@/lib/maps";
 import * as H from "@/lib/strat/history";
-import { removeObject } from "@/lib/strat/model";
+import { continueStep, move, newStep, removeObject } from "@/lib/strat/model";
 import { shareUrl } from "@/lib/strat/share";
-import { loadStrat, saveStrat } from "@/lib/strat/storage";
-import type { Strat } from "@/lib/strat/types";
+import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
+import { PEN_COLORS, sceneOf, type BoardObject, type PenColor, type Strat } from "@/lib/strat/types";
 
-type SaveState = "saved" | "saving" | "failed";
+type SaveState = { status: "saved" | "saving" | "failed"; at: Date | null };
+type Confirm = "clear" | "delete" | null;
+
+const TOOLS = new Set<string>(Object.values(TOOL_KEYS));
+const isTool = (v: unknown): v is Tool => typeof v === "string" && TOOLS.has(v);
+const isPen = (v: unknown): v is PenColor => typeof v === "string" && v in PEN_COLORS;
+const isIndex = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 export function Editor({ id }: { id: string }) {
+  const router = useRouter();
   const [history, setHistory] = useState<H.History | null>(null);
   const [missing, setMissing] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
   const [tool, setTool] = useState<Tool>("select");
+  const [penColor, setPenColor] = useState<PenColor>("chalk");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [time, setTime] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [save, setSave] = useState<SaveState>("saved");
+  const [save, setSave] = useState<SaveState>({ status: "saved", at: null });
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
+  const [mapPicker, setMapPicker] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
+  // Load the strat and the cached editor preferences.
   useEffect(() => {
     const s = loadStrat(id);
-    if (s) setHistory(H.initHistory(s));
-    else setMissing(true);
+    if (!s) {
+      setMissing(true);
+      return;
+    }
+    setHistory(H.initHistory(s));
+    setStepIndex(Math.min(loadPref(`step:${id}`, 0, isIndex), s.steps.length - 1));
+    setTool(loadPref("tool", "select", isTool));
+    setPenColor(loadPref("pen", "chalk", isPen));
+    setPrefsLoaded(true);
   }, [id]);
+
+  useEffect(() => {
+    if (!prefsLoaded) return;
+    savePref("tool", tool);
+    savePref("pen", penColor);
+    savePref(`step:${id}`, stepIndex);
+  }, [prefsLoaded, id, tool, penColor, stepIndex]);
 
   const strat = history?.present ?? null;
 
-  // Autosave shortly after the last change.
+  // Everything is written to the browser cache shortly after each change.
   const firstLoad = useRef(true);
+  const doSave = useCallback((s: Strat) => {
+    const ok = saveStrat(s);
+    setSave({ status: ok ? "saved" : "failed", at: ok ? new Date() : null });
+    return ok;
+  }, []);
   useEffect(() => {
     if (!strat) return;
     if (firstLoad.current) {
       firstLoad.current = false;
       return;
     }
-    setSave("saving");
-    const t = setTimeout(() => setSave(saveStrat(strat) ? "saved" : "failed"), 400);
+    setSave((s) => ({ ...s, status: "saving" }));
+    const t = setTimeout(() => doSave(strat), 400);
     return () => clearTimeout(t);
-  }, [strat]);
+  }, [strat, doSave]);
 
   useEffect(() => {
     if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 2600);
+    const t = setTimeout(() => setNotice(null), 2800);
     return () => clearTimeout(t);
   }, [notice]);
 
-  const commit = useCallback((next: Strat) => setHistory((h) => (h ? H.commit(h, next) : h)), []);
-  const checkpoint = useCallback(() => setHistory((h) => (h ? H.checkpoint(h) : h)), []);
-  const live = useCallback((next: Strat) => setHistory((h) => (h ? H.live(h, next) : h)), []);
+  const step = strat ? strat.steps[Math.min(stepIndex, strat.steps.length - 1)] : null;
+  const withObjects = useCallback(
+    (s: Strat, objects: BoardObject[]): Strat => ({
+      ...s,
+      steps: s.steps.map((st, i) => (i === Math.min(stepIndex, s.steps.length - 1) ? { ...st, objects } : st)),
+    }),
+    [stepIndex],
+  );
 
-  // Keyboard shortcuts (ignored while typing in a field).
+  const commitObjects = useCallback((o: BoardObject[]) => setHistory((h) => (h ? H.commit(h, withObjects(h.present, o)) : h)), [withObjects]);
+  const liveObjects = useCallback((o: BoardObject[]) => setHistory((h) => (h ? H.live(h, withObjects(h.present, o)) : h)), [withObjects]);
+  const checkpoint = useCallback(() => setHistory((h) => (h ? H.checkpoint(h) : h)), []);
+
+  // Typing in a field is one undo step per burst, not one per key.
+  const lastTyping = useRef(0);
+  const commitStrat = useCallback((next: Strat) => {
+    const now = Date.now();
+    const burst = now - lastTyping.current < 1200;
+    lastTyping.current = now;
+    setHistory((h) => (h ? (burst ? H.live(h, next) : H.commit(h, next)) : h));
+  }, []);
+  const commitStratNow = useCallback((next: Strat) => setHistory((h) => (h ? H.commit(h, next) : h)), []);
+
+  function goToStep(i: number) {
+    setStepIndex(i);
+    setSelectedId(null);
+    setPlaying(false);
+    setTime(null);
+  }
+
+  // Keyboard shortcuts (ignored while typing in a field or a dialog is open).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
-      if (target.closest("input, textarea, select")) return;
+      if (target.closest("input, textarea, select, dialog")) return;
       const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (strat && doSave(strat)) setNotice("Strategy saved.");
+        return;
+      }
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
         setHistory((h) => (h ? (e.shiftKey ? H.redo(h) : H.undo(h)) : h));
@@ -77,7 +144,11 @@ export function Editor({ id }: { id: string }) {
       if (mod) return;
       if ((e.key === "Delete" || e.key === "Backspace") && selectedId) {
         e.preventDefault();
-        setHistory((h) => (h ? H.commit(h, removeObject(h.present, selectedId)) : h));
+        setHistory((h) => {
+          if (!h) return h;
+          const i = Math.min(stepIndex, h.present.steps.length - 1);
+          return H.commit(h, withObjects(h.present, removeObject(h.present.steps[i].objects, selectedId)));
+        });
         setSelectedId(null);
         return;
       }
@@ -99,14 +170,14 @@ export function Editor({ id }: { id: string }) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId]);
+  }, [selectedId, stepIndex, withObjects, strat, doSave]);
 
   async function share() {
     if (!strat) return;
     const url = shareUrl(window.location.origin, strat);
     try {
       await navigator.clipboard.writeText(url);
-      setNotice("Share link copied. Anyone with it can view this strat.");
+      setNotice("Share link copied. Anyone with it can view this strategy.");
     } catch {
       window.prompt("Copy this link:", url);
     }
@@ -115,82 +186,145 @@ export function Editor({ id }: { id: string }) {
   if (missing) {
     return (
       <main className="mx-auto max-w-md px-4 py-24 text-center">
-        <h1 className="font-display text-3xl font-semibold">This strat isn&apos;t in this browser</h1>
-        <p className="mt-2 text-muted">Strats are saved in the browser they were made in. To see someone else&apos;s, open their share link.</p>
+        <h1 className="font-display text-3xl font-semibold">This strategy isn&apos;t in this browser</h1>
+        <p className="mt-2 text-muted">Strategies are saved in the browser they were made in. To see someone else&apos;s, open their share link.</p>
         <Link href="/" className="btn btn-primary mt-6">
-          All strats
+          All strategies
         </Link>
       </main>
     );
   }
-  if (!strat || !history) return <main className="p-8 text-muted">Loading…</main>;
+  if (!strat || !history || !step) return <main className="p-8 text-muted">Loading…</main>;
 
-  const selected = strat.objects.find((o) => o.id === selectedId) ?? null;
-
-  const saveLabel = save === "saved" ? "Saved" : save === "saving" ? "Saving…" : "Not saved: browser storage is full or blocked";
-  const isEmpty = strat.objects.length === 0;
+  const current = Math.min(stepIndex, strat.steps.length - 1);
+  const scene = sceneOf(strat, step);
+  const selected = step.objects.find((o) => o.id === selectedId) ?? null;
+  const isEmpty = step.objects.length === 0;
+  const savedLabel =
+    save.status === "saving"
+      ? "Saving…"
+      : save.at
+        ? `Saved at ${save.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} in this browser`
+        : "Saved in this browser";
 
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b border-line px-3 py-2 sm:gap-3 sm:px-4">
-        <Link href="/" className="btn btn-icon shrink-0" aria-label="All strats">
+        <Link href="/" className="btn btn-icon shrink-0" aria-label="All strategies">
           <ArrowLeft className="size-4" />
         </Link>
-        <div className="hidden shrink-0 md:block">
+        <div className="hidden shrink-0 xl:block">
           <Logo />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-xl font-semibold">{strat.name || "Untitled strat"}</h1>
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-            <span className="rounded border border-line px-1.5 py-0.5">{MAPS[strat.map].name}</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setMapPicker(true)}
+              className="rounded border border-line px-1.5 py-0.5 text-muted hover:border-line-strong hover:text-text"
+              title="Change map"
+            >
+              {MAPS[strat.map].name}
+            </button>
             <span className={`rounded px-1.5 py-0.5 font-semibold text-bg ${strat.side === "T" ? "bg-team-t" : "bg-team-ct"}`}>{strat.side} side</span>
-            <span className={`hidden sm:inline ${save === "failed" ? "text-danger" : ""}`} role="status">
-              {saveLabel}
+            <span id="save-status" role="status" className={`hidden sm:inline ${save.status === "failed" ? "text-danger" : "text-muted"}`}>
+              {save.status === "failed" ? "Not saved: this browser's storage is full or blocked" : savedLabel}
             </span>
           </div>
         </div>
-        <button type="button" className="btn btn-icon hidden shrink-0 sm:inline-flex" onClick={() => setHistory(H.undo(history))} disabled={history.past.length === 0} title="Undo (Ctrl+Z)" aria-label="Undo">
-          <Undo2 className="size-4" />
+
+        <div className="hidden items-center gap-1 md:flex">
+          <button type="button" className="btn btn-icon" onClick={() => setHistory(H.undo(history))} disabled={history.past.length === 0} title="Undo (Ctrl+Z)" aria-label="Undo">
+            <Undo2 className="size-4" />
+          </button>
+          <button type="button" className="btn btn-icon" onClick={() => setHistory(H.redo(history))} disabled={history.future.length === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+            <Redo2 className="size-4" />
+          </button>
+        </div>
+        <button type="button" className="btn shrink-0 max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("clear")} disabled={isEmpty} title="Clear this step's board" aria-label="Clear board">
+          <Eraser className="size-4" />
+          <span className="max-lg:hidden">Clear board</span>
         </button>
-        <button type="button" className="btn btn-icon hidden shrink-0 sm:inline-flex" onClick={() => setHistory(H.redo(history))} disabled={history.future.length === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
-          <Redo2 className="size-4" />
+        <button type="button" className="btn shrink-0 text-danger max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("delete")} title="Delete this strategy" aria-label="Delete strategy">
+          <Trash2 className="size-4" />
+          <span className="max-lg:hidden">Delete strategy</span>
         </button>
-        <button type="button" className="btn btn-primary shrink-0" onClick={share}>
-          <Link2 className="size-4" /> Share
+        <button
+          type="button"
+          className={`btn shrink-0 max-sm:w-11 max-sm:px-0 ${save.status === "failed" ? "border-danger text-danger" : ""}`}
+          onClick={() => {
+            if (doSave(strat)) setNotice("Strategy saved.");
+          }}
+          title="Save (Ctrl+S)"
+          aria-label="Save strategy"
+          aria-describedby="save-status"
+        >
+          {save.status === "saved" ? <Check className="size-4" /> : <Save className="size-4" />}
+          <span className="max-sm:hidden">{save.status === "saved" ? "Saved" : "Save"}</span>
+        </button>
+        <button type="button" className="btn btn-primary shrink-0 max-sm:w-11 max-sm:px-0" onClick={share} aria-label="Copy share link">
+          <Link2 className="size-4" />
+          <span className="max-sm:hidden">Share</span>
         </button>
       </header>
 
       <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[auto_minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <Toolbar tool={tool} onTool={setTool} />
+          <Toolbar tool={tool} onTool={setTool} side={strat.side} penColor={penColor} onPenColor={setPenColor} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-2">
-          <p className="mx-auto w-full max-w-[min(100%,calc(100dvh-190px))] text-sm text-muted" aria-live="polite">
+          <StepBar
+            steps={strat.steps}
+            current={current}
+            onSelect={goToStep}
+            onAdd={() => {
+              commitStratNow({ ...strat, steps: [...strat.steps, newStep(`Step ${strat.steps.length + 1}`)] });
+              goToStep(strat.steps.length);
+            }}
+            onContinue={() => {
+              const next = continueStep(step, `Step ${strat.steps.length + 1}`);
+              const steps = [...strat.steps.slice(0, current + 1), next, ...strat.steps.slice(current + 1)];
+              commitStratNow({ ...strat, steps });
+              goToStep(current + 1);
+              setNotice("New step: everyone starts where they ended.");
+            }}
+            onMove={(dir) => {
+              commitStratNow({ ...strat, steps: move(strat.steps, current, current + dir) });
+              setStepIndex(current + dir);
+            }}
+            onRename={(name) => commitStrat({ ...strat, steps: strat.steps.map((s, i) => (i === current ? { ...s, name } : s)) })}
+            onDelete={() => {
+              commitStratNow({ ...strat, steps: strat.steps.filter((_, i) => i !== current) });
+              goToStep(Math.max(0, current - 1));
+              setNotice("Step deleted. Undo with Ctrl+Z.");
+            }}
+          />
+          <p className="mx-auto w-full max-w-[min(100%,calc(100dvh-250px))] text-sm text-muted" aria-live="polite">
             {toolHint(tool)}
           </p>
-          <div className="relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-190px))] overflow-hidden rounded-xl border border-line">
+          <div className="relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] overflow-hidden rounded-xl border border-line">
             <Board
-              strat={strat}
+              scene={scene}
               time={time}
               tool={tool}
+              penColor={penColor}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              onCommit={commit}
+              onCommit={commitObjects}
               onCheckpoint={checkpoint}
-              onLive={live}
+              onLive={liveObjects}
               onNotice={setNotice}
             />
             {isEmpty && tool === "select" && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
                 <div className="pointer-events-auto max-w-xs rounded-xl border border-line bg-bg/95 p-5 text-center shadow-2xl">
                   <h2 className="font-display text-2xl font-semibold">Place your five</h2>
-                  <p className="mt-1 text-sm text-muted">Start with the players, then draw where each one goes.</p>
-                  <div className="mt-4 flex justify-center gap-2">
-                    <button type="button" className="btn btn-primary" onClick={() => setTool(strat.side)}>
-                      Place {strat.side} players
-                    </button>
-                  </div>
+                  <p className="mt-1 text-sm text-muted">Start with your teammates, then draw where each one goes.</p>
+                  <button type="button" className="btn btn-primary mt-4" onClick={() => setTool("mate")}>
+                    Place teammates
+                  </button>
                 </div>
               </div>
             )}
@@ -200,13 +334,66 @@ export function Editor({ id }: { id: string }) {
               </div>
             )}
           </div>
-          <Timeline strat={strat} time={time} onTime={setTime} playing={playing} onPlaying={setPlaying} onSelectEvent={setSelectedId} />
+          <Timeline scene={scene} time={time} onTime={setTime} playing={playing} onPlaying={setPlaying} onSelectEvent={setSelectedId} />
         </div>
 
         <aside className="min-w-0 rounded-xl border border-line bg-panel p-4">
-          <Inspector strat={strat} selected={selected} onCommit={commit} onSelect={setSelectedId} />
+          <Inspector
+            strat={strat}
+            scene={scene}
+            selected={selected}
+            onObjects={commitObjects}
+            onStrat={commitStrat}
+            onSelect={setSelectedId}
+            onPickMap={() => setMapPicker(true)}
+          />
         </aside>
       </div>
+
+      <Modal open={mapPicker} onClose={() => setMapPicker(false)} title="Change map" wide>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {MAP_IDS.map((m) => (
+            <MapCard
+              key={m}
+              id={m}
+              selected={strat.map === m}
+              onClick={() => {
+                if (m !== strat.map) {
+                  commitStratNow({ ...strat, map: m });
+                  setNotice(`Map changed to ${MAPS[m].name}. Everything kept its spot; move it to fit.`);
+                }
+                setMapPicker(false);
+              }}
+            />
+          ))}
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={confirm === "clear"}
+        title={`Clear step ${current + 1}, ${step.name}?`}
+        body="This removes every player, route, grenade, drawing and note on this step's board. You can undo it with Ctrl+Z."
+        confirmLabel="Clear board"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          commitObjects([]);
+          setSelectedId(null);
+          setConfirm(null);
+          setNotice("Board cleared. Undo with Ctrl+Z.");
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === "delete"}
+        title={`Delete ${strat.name || "this strategy"}?`}
+        body="This removes the strategy and all its steps from this browser. It can't be undone. Share links you already sent keep working."
+        confirmLabel="Delete strategy"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          deleteStrat(strat.id);
+          setConfirm(null);
+          router.push("/");
+        }}
+      />
     </div>
   );
 }

@@ -11,12 +11,14 @@ import { createStrat, duplicateStrat } from "@/lib/strat/model";
 import { deleteStrat, listStrats, saveStrat } from "@/lib/strat/storage";
 import { TEMPLATES } from "@/lib/strat/templates";
 import { stratDuration } from "@/lib/strat/timeline";
-import type { Side, Strat } from "@/lib/strat/types";
+import { sceneOf, type Side, type Strat } from "@/lib/strat/types";
+import { MapCard } from "@/components/map-card";
 
 /** The hero: the Mirage example playing on a loop, the way a team would see it. */
 function LiveDemo({ onOpen }: { onOpen: (s: Strat) => void }) {
   const strat = useMemo(() => TEMPLATES[0].build(), []);
-  const end = stratDuration(strat) + 2;
+  const scene = sceneOf(strat, strat.steps[0]);
+  const end = stratDuration(scene) + 2;
   const [time, setTime] = useState(13);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ function LiveDemo({ onOpen }: { onOpen: (s: Strat) => void }) {
   return (
     <div className="relative">
       <div className="aspect-square overflow-hidden rounded-2xl border border-line shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
-        <Board strat={strat} time={time} readOnly />
+        <Board scene={scene} time={time} readOnly />
       </div>
       <div className="absolute top-3 left-3 flex items-center gap-3 rounded-lg border border-line bg-bg/90 px-3 py-2">
         <span className="font-display text-2xl leading-none font-semibold tabular-nums">{roundClock(time)}</span>
@@ -57,7 +59,6 @@ export function Library() {
   const [map, setMap] = useState<MapId>("mirage");
   const [side, setSide] = useState<Side>("T");
   const [error, setError] = useState<string | null>(null);
-  const previews = useMemo(() => Object.fromEntries(MAP_IDS.map((id) => [id, createStrat(id, "T")])) as Record<MapId, Strat>, []);
   const examples = useMemo(() => TEMPLATES.map((t) => ({ t, strat: t.build() })), []);
 
   useEffect(() => setStrats(listStrats()), []);
@@ -105,22 +106,9 @@ export function Library() {
         <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
             <span className="label">Map</span>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {MAP_IDS.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setMap(id)}
-                  aria-pressed={map === id}
-                  className={`overflow-hidden rounded-xl border text-left transition-colors ${
-                    map === id ? "border-chalk ring-1 ring-chalk" : "border-line hover:border-line-strong"
-                  }`}
-                >
-                  <span className="block aspect-square">
-                    <Board strat={previews[id]} time={null} readOnly />
-                  </span>
-                  <span className="block px-3 py-2 font-display text-lg font-semibold">{MAPS[id].name}</span>
-                </button>
+                <MapCard key={id} id={id} selected={map === id} onClick={() => setMap(id)} />
               ))}
             </div>
           </div>
@@ -168,7 +156,7 @@ export function Library() {
                 className="flex w-full items-center gap-4 rounded-xl border border-line bg-panel p-3 text-left transition-colors hover:border-line-strong"
               >
                 <span className="size-28 shrink-0 overflow-hidden rounded-lg border border-line sm:size-32">
-                  <Board strat={strat} time={null} readOnly />
+                  <Board scene={sceneOf(strat, strat.steps[0])} time={null} readOnly />
                 </span>
                 <span>
                   <span className="block font-display text-xl font-semibold">{t.name}</span>
@@ -196,10 +184,13 @@ export function Library() {
               <li key={s.id} className="overflow-hidden rounded-xl border border-line bg-panel">
                 <button type="button" onClick={() => router.push(`/edit?id=${s.id}`)} className="block w-full text-left">
                   <span className="block aspect-square border-b border-line">
-                    <Board strat={s} time={null} readOnly />
+                    <Board scene={sceneOf(s, s.steps[0])} time={null} readOnly />
                   </span>
                   <span className="block px-4 pt-3">
                     <span className="block truncate font-display text-xl font-semibold">{s.name}</span>
+                    <span className="block text-sm text-muted">
+                      {s.steps.length} {s.steps.length === 1 ? "step" : "steps"}
+                    </span>
                     <span className="mt-1 flex items-center gap-2 text-sm text-muted">
                       <span className={`inline-block size-2.5 rounded-full ${s.side === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
                       {MAPS[s.map].name}, {s.side} side

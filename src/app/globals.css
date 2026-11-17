@@ -140,6 +140,16 @@ body {
   width: 2.75rem;
   padding: 0;
 }
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #1b0d0d;
+  font-weight: 600;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #ff9898;
+  border-color: #ff9898;
+}
 .btn-primary {
   background: var(--chalk);
   border-color: var(--chalk);
@@ -172,4 +182,16 @@ body {
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
+}
+
+:root {
+  --pen-red: #ff5d5d;
+  --pen-green: #5fd38d;
+  --c4: #4b4a33;
+  --c4-edge: #262518;
+  --c4-screen: #7ee08f;
+  --c4-keys: #2c2b1d;
+  --c4-led: #ff4d4d;
+  --c4-wire-red: #e0483f;
+  --c4-wire-blue: #4f86e8;
 }
