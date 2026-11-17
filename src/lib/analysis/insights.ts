@@ -1,11 +1,16 @@
 import type { PlayerData } from "@/lib/faceit/types";
 import { dec, pct, pct100, round } from "./format";
 import type { Metrics } from "./metrics";
-import { REFERENCE, VARIATION } from "./reference";
+import { VARIATION, type Reference } from "./reference";
 import type { Insight } from "./types";
 
 /** z-score magnitude at which something is worth telling the player. */
 const NOTABLE = 1;
+
+/** "for your level" when the reference comes from the player's own level, otherwise nothing. */
+function forLevel(r: Reference): boolean {
+  return r.level !== undefined;
+}
 
 /**
  * Generates every strength/weakness the data supports, then keeps the most
@@ -13,6 +18,7 @@ const NOTABLE = 1;
  */
 export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
   const lt = data.lifetime;
+  const ref = m.ref;
   const all: Insight[] = [];
   const push = (i: Insight | null | false) => {
     if (i) all.push(i);
@@ -40,11 +46,11 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
       kind: "weakness",
       title: "Low round impact",
       detail: adrLow
-        ? `You deal ${round(m.adr!)} damage per round. Solid FACEIT players usually sit around ${REFERENCE.adr.ref}. That gap usually means fewer fights taken with a real chance of winning, not just missed shots.`
+        ? `You deal ${round(m.adr!)} damage per round. ${forLevel(ref.adr) ? `Players at your level usually sit around ${round(ref.adr.ref)}` : `Solid FACEIT players usually sit around ${round(ref.adr.ref)}`}. That gap usually means fewer fights taken with a real chance of winning, not just missed shots.`
         : `A ${dec(m.kd)} K/D means you trade your life away more often than you take one. Every death below 1.0 puts your team in a 4v5.`,
       evidence: adrLow ? `${round(m.adr!)} ADR` : `${dec(m.kd)} K/D`,
       coachLine: adrLow
-        ? `Your biggest gap is impact: ${round(m.adr!)} damage per round leaves your team short of what it needs to win fights.`
+        ? `Your biggest gap is impact: ${round(m.adr!)} damage per round${forLevel(ref.adr) ? ` is below what's typical for your level and` : ""} leaves your team short of what it needs to win fights.`
         : `Your biggest gap is survival: at ${dec(m.kd)} K/D you die more than you kill, which leaves your team playing short-handed.`,
       weight: -fireLow,
     });
@@ -80,7 +86,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
       category: "aim",
       kind: "weakness",
       title: "Crosshair placement",
-      detail: `Only ${pct100(m.headshotPct)} of your kills are headshots (most solid players land around ${REFERENCE.headshotPct.ref}%). Your crosshair is often below head level when the fight starts, so duels last longer than they need to.`,
+      detail: `Only ${pct100(m.headshotPct)} of your kills are headshots (${forLevel(ref.headshotPct) ? "typical for your level:" : "most solid players land around"} ${pct100(ref.headshotPct.ref)}). Your crosshair is often below head level when the fight starts, so duels last longer than they need to.`,
       evidence: `${pct100(m.headshotPct)} headshots`,
       coachLine: `Your fights last too long: ${pct100(m.headshotPct)} headshots suggests your crosshair isn't at head level when enemies appear.`,
       weight: -hsZ,
@@ -96,7 +102,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         category: "opening",
         kind: "strength",
         title: "Wins opening duels",
-        detail: `You win ${pct(m.entrySuccess)} of the round's first fight. Every opening kill turns the round into a 5v4, which is the single biggest swing in CS.`,
+        detail: `You win ${pct(m.entrySuccess)} of the round's first fight${forLevel(ref.entrySuccess) ? ` (typical for your level: ${pct(ref.entrySuccess.ref)})` : ""}. Every opening kill turns the round into a 5v4, which is the single biggest swing in CS.`,
         evidence: `${pct(m.entrySuccess)} opening duels won`,
         coachLine: `You win ${pct(m.entrySuccess)} of your opening duels, which gives your team a 5v4 head start.`,
         weight: m.z.entrySuccess + (takesMany ? 0.5 : 0),
@@ -109,7 +115,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         title: takesMany ? "Giving away the first kill" : "Losing opening duels",
         detail: takesMany
           ? `You take the first fight in ${pct(m.entryRate!)} of rounds, which is more than most players, but you win only ${pct(m.entrySuccess)} of them. That often hands the enemy a 5v4 before your team has done anything.`
-          : `When you're in the round's first fight you win only ${pct(m.entrySuccess)}. Opening duels decide a large share of rounds, so each loss here costs a lot.`,
+          : `When you're in the round's first fight you win only ${pct(m.entrySuccess)}${forLevel(ref.entrySuccess) ? ` (typical for your level: ${pct(ref.entrySuccess.ref)})` : ""}. Opening duels decide a large share of rounds, so each loss here costs a lot.`,
         evidence: `${pct(m.entrySuccess)} opening duels won${takesMany ? ` · ${pct(m.entryRate!)} of rounds` : ""}`,
         coachLine: takesMany
           ? `The biggest leak is your opening duels: you take the first fight often (${pct(m.entryRate!)} of rounds) but win only ${pct(m.entrySuccess)}, which keeps putting your team in 4v5s.`
@@ -127,7 +133,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         category: "clutch",
         kind: "strength",
         title: "Calm in clutches",
-        detail: `You win ${pct(m.clutch1v1Rate)} of your 1v1s (${m.clutch1v1Count} played). Most players win under 40%.`,
+        detail: `You win ${pct(m.clutch1v1Rate)} of your 1v1s (${m.clutch1v1Count} played). ${forLevel(ref.clutch1v1) ? `That's well above the ${pct(ref.clutch1v1.ref)} typical for your level.` : "Most players win under 40%."}`,
         evidence: `${pct(m.clutch1v1Rate)} 1v1s won`,
         coachLine: `You're reliable when it's down to you: ${pct(m.clutch1v1Rate)} of your 1v1s end in your favour.`,
         weight: m.z.clutch1v1,
@@ -138,7 +144,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         category: "clutch",
         kind: "weakness",
         title: "Late-round decisions",
-        detail: `You win ${pct(m.clutch1v1Rate)} of your 1v1s (${m.clutch1v1Count} played). Most players win around ${pct(REFERENCE.clutch1v1.ref)}. Close rounds are slipping away at the very end.`,
+        detail: `You win ${pct(m.clutch1v1Rate)} of your 1v1s (${m.clutch1v1Count} played). ${forLevel(ref.clutch1v1) ? `Players at your level win around ${pct(ref.clutch1v1.ref)}.` : `Most players win around ${pct(ref.clutch1v1.ref)}.`} Close rounds are slipping away at the very end.`,
         evidence: `${pct(m.clutch1v1Rate)} 1v1s won`,
         coachLine: `Close rounds are slipping: you win only ${pct(m.clutch1v1Rate)} of your 1v1s.`,
         weight: -m.z.clutch1v1,
@@ -147,6 +153,8 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
   }
 
   // ---------- utility ----------
+  const utilityRefs = [ref.flashSuccess, ref.flashesPerRound, ref.enemiesFlashedPerRound, ref.utilityDamagePerRound];
+  const utilityForLevel = utilityRefs.every(forLevel);
   if (m.z.utility !== null) {
     if (m.z.utility >= NOTABLE) {
       push({
@@ -154,7 +162,7 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         category: "utility",
         kind: "strength",
         title: "Useful utility",
-        detail: `Your grenades do real work${lt.enemiesFlashedPerRound !== null ? `: you blind ${dec(lt.enemiesFlashedPerRound)} enemies per round` : ""}${lt.utilityDamagePerRound !== null ? ` and deal ${dec(lt.utilityDamagePerRound, 1)} grenade damage per round` : ""}. That's the stuff that wins rounds without showing up on the scoreboard.`,
+        detail: `Your grenades do real work${lt.enemiesFlashedPerRound !== null ? `: you blind ${dec(lt.enemiesFlashedPerRound)} enemies per round` : ""}${lt.utilityDamagePerRound !== null ? ` and deal ${dec(lt.utilityDamagePerRound, 1)} grenade damage per round` : ""}. ${utilityForLevel ? "That's more than most players at your level get out of theirs, and it" : "That's the stuff that"} wins rounds without showing up on the scoreboard.`,
         evidence: [
           lt.enemiesFlashedPerRound !== null ? `${dec(lt.enemiesFlashedPerRound)} enemies flashed/round` : null,
           lt.utilityDamagePerRound !== null ? `${dec(lt.utilityDamagePerRound, 1)} util dmg/round` : null,
@@ -164,14 +172,15 @@ export function generateInsights(m: Metrics, data: PlayerData): Insight[] {
         coachLine: `Your utility makes your team better, and that's rarer than good aim.`,
         weight: m.z.utility,
       });
-    } else if (m.z.utility <= -1.5) {
-      // Utility references are sampled from high-level players, so we only flag clearly low usage.
+    } else if (m.z.utility <= (utilityForLevel ? -NOTABLE : -1.5)) {
+      // The generic utility references are sampled from high-level players, so without
+      // per-level baselines we only flag clearly low usage.
       push({
         id: "utility_low",
         category: "utility",
         kind: "weakness",
         title: "Under-used utility",
-        detail: `Your flashes and grenades aren't doing much yet${lt.enemiesFlashedPerRound !== null ? `: you blind ${dec(lt.enemiesFlashedPerRound)} enemies per round` : ""}${lt.utilityDamagePerRound !== null ? ` and deal ${dec(lt.utilityDamagePerRound, 1)} grenade damage` : ""}. Good utility makes your fights easier before you even peek.`,
+        detail: `Your flashes and grenades ${utilityForLevel ? "do less than is typical for your level" : "aren't doing much yet"}${lt.enemiesFlashedPerRound !== null ? `: you blind ${dec(lt.enemiesFlashedPerRound)} enemies per round` : ""}${lt.utilityDamagePerRound !== null ? ` and deal ${dec(lt.utilityDamagePerRound, 1)} grenade damage` : ""}. Good utility makes your fights easier before you even peek.`,
         evidence: lt.flashSuccess !== null ? `${pct(lt.flashSuccess)} of flashes blind someone` : "Low utility impact",
         coachLine: `You're taking fights without help from your utility, which makes every duel harder than it needs to be.`,
         weight: -m.z.utility - 0.5,

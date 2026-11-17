@@ -1,25 +1,33 @@
+import baselines from "./baselines.json";
+
 /**
  * Reference points the analysis compares a player against.
  *
  * Two kinds:
  *  - GROUNDED: true by construction of the game, valid at every level.
  *      K/D 1.0, win rate 50%, opening-duel rate 0.2 (2 of 10 players take each
- *      round's opening duel), opening-duel success 50%.
- *  - SAMPLED: medians from a small sample (60 EU players, FACEIT levels 8–10,
- *      ≥300 rounds of extended stats each) pulled from the FACEIT Data API in
- *      Nov 2026. They skew towards stronger players, so they're used with a
- *      wide "spread" and the copy never says "for your level".
+ *      round's opening duel).
+ *  - PER LEVEL: medians of FACEIT players at the player's own skill level
+ *      (≥300 rounds of extended stats each), from `baselines.json`, built by
+ *      `scripts/build-baselines.ts` from the FACEIT Data API. Covers ADR,
+ *      headshot %, 1v1 win rate, opening-duel success and the utility stats.
  *
- * `spread` ≈ half the interquartile range of the sample: one spread away from
- * the reference is "notable", two is "strong".
+ * `REFERENCE` holds the level-independent fallbacks, used when the player's
+ * level is unknown or a level has too few sampled players for a metric. The
+ * sampled fallbacks are medians of 60 EU players at levels 8–10 (Nov 2026), so
+ * they skew towards stronger players and copy built on them never says "for
+ * your level". Opening-duel success falls back to the grounded 50% (every
+ * opening duel has one winner and one loser).
  *
- * TODO(baselines): replace SAMPLED values with per-level baselines built from
- * a large FACEIT sample, then compare players against their own level.
+ * `spread` ≈ half the interquartile range: one spread away from the reference
+ * is "notable", two is "strong".
  */
 
 export interface Reference {
   ref: number;
   spread: number;
+  /** Set when the reference comes from players at this FACEIT level. */
+  level?: number;
 }
 
 export const REFERENCE = {
@@ -37,6 +45,68 @@ export const REFERENCE = {
   enemiesFlashedPerRound: { ref: 0.3, spread: 0.1 },
   utilityDamagePerRound: { ref: 4.4, spread: 0.9 },
 } satisfies Record<string, Reference>;
+
+export type ReferenceKey = keyof typeof REFERENCE;
+export type ReferenceSet = Record<ReferenceKey, Reference>;
+
+/** Metrics `baselines.json` provides per level. */
+export const LEVEL_KEYS = [
+  "adr",
+  "headshotPct",
+  "clutch1v1",
+  "entrySuccess",
+  "flashSuccess",
+  "flashesPerRound",
+  "enemiesFlashedPerRound",
+  "utilityDamagePerRound",
+] as const satisfies readonly ReferenceKey[];
+
+/** Fewest sampled players a level needs for a metric before we trust its median. */
+export const MIN_LEVEL_SAMPLE = 40;
+
+/**
+ * Smallest spread a per-level reference may have. FACEIT reports rates to two
+ * decimals, so a tight level (e.g. 1v1 win rate at level 10) can show an IQR of
+ * only a couple of hundredths, which would make tiny differences look "strong".
+ */
+const MIN_SPREAD: Record<(typeof LEVEL_KEYS)[number], number> = {
+  adr: 3,
+  headshotPct: 3,
+  clutch1v1: 0.025,
+  entrySuccess: 0.025,
+  flashSuccess: 0.025,
+  flashesPerRound: 0.05,
+  enemiesFlashedPerRound: 0.05,
+  utilityDamagePerRound: 0.5,
+};
+
+interface LevelStat {
+  median: number;
+  p25: number;
+  p75: number;
+  n: number;
+}
+export interface Baselines {
+  levels: Record<string, { metrics: Partial<Record<string, LevelStat>> } | undefined>;
+}
+
+/**
+ * The reference set for a player at `level`: per-level medians where the
+ * baseline has enough players, the fallbacks in `REFERENCE` everywhere else.
+ */
+export function referenceFor(level: number | null | undefined, source: Baselines = baselines): ReferenceSet {
+  const set: ReferenceSet = { ...REFERENCE };
+  const stats = level != null ? source.levels[String(level)]?.metrics : undefined;
+  if (!stats) return set;
+  for (const key of LEVEL_KEYS) {
+    const s = stats[key];
+    if (!s || s.n < MIN_LEVEL_SAMPLE) continue;
+    const spread = (s.p75 - s.p25) / 2;
+    if (!Number.isFinite(s.median) || !Number.isFinite(spread)) continue;
+    set[key] = { ref: s.median, spread: Math.max(spread, MIN_SPREAD[key]), level: level! };
+  }
+  return set;
+}
 
 /** Sniper kill share above which someone is clearly the team's AWPer (sample p75 ≈ 0.10). */
 export const AWPER_SNIPER_SHARE = 0.2;

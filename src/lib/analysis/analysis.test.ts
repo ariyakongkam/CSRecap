@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { LifetimeStats, MapStats, PlayerData, RecentMatch } from "@/lib/faceit/types";
 import { analyzePlayer } from "./index";
+import { MIN_LEVEL_SAMPLE, REFERENCE, referenceFor, type Baselines } from "./reference";
 
 // Synthetic fixtures — shaped like normalized FACEIT data, not real players.
+// The default player is level 6 and exactly typical for that level.
+
+const LEVEL = 6;
+const typical = referenceFor(LEVEL);
 
 function lifetime(over: Partial<LifetimeStats> = {}): LifetimeStats {
   return {
@@ -10,23 +15,23 @@ function lifetime(over: Partial<LifetimeStats> = {}): LifetimeStats {
     wins: 200,
     winRate: 50,
     kd: 1.0,
-    adr: 79,
-    headshotPct: 47,
+    adr: typical.adr.ref,
+    headshotPct: typical.headshotPct.ref,
     avgKills: 18,
     longestWinStreak: 6,
     recentResults: [true, false, true, false, true],
     extendedRounds: 5000,
     entryRate: 0.2,
-    entrySuccess: 0.5,
+    entrySuccess: typical.entrySuccess.ref,
     entryCount: 1000,
-    clutch1v1Rate: 0.38,
+    clutch1v1Rate: typical.clutch1v1.ref,
     clutch1v1Count: 100,
     clutch1v2Rate: 0.15,
     clutch1v2Count: 100,
-    flashesPerRound: 0.45,
-    enemiesFlashedPerRound: 0.3,
-    flashSuccess: 0.48,
-    utilityDamagePerRound: 4.4,
+    flashesPerRound: typical.flashesPerRound.ref,
+    enemiesFlashedPerRound: typical.enemiesFlashedPerRound.ref,
+    flashSuccess: typical.flashSuccess.ref,
+    utilityDamagePerRound: typical.utilityDamagePerRound.ref,
     sniperKillRate: 0.04,
     ...over,
   };
@@ -61,7 +66,7 @@ function player(over: Partial<PlayerData> = {}): PlayerData {
       avatar: null,
       country: "se",
       region: "EU",
-      level: 6,
+      level: LEVEL,
       elo: 1300,
       steamId64: null,
       faceitUrl: null,
@@ -166,5 +171,130 @@ describe("summary copy", () => {
     expect(r.summary.join(" ")).toContain("fix your Anubis");
     // the impact playstyle already covers firepower, so the strength line should be something else
     expect(r.summary.filter((s) => s.includes("95 damage")).length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("per-level references", () => {
+  const synthetic: Baselines = {
+    levels: {
+      "3": {
+        metrics: {
+          adr: { median: 70, p25: 64, p75: 76, n: 200 },
+          clutch1v1: { median: 0.36, p25: 0.355, p75: 0.365, n: 200 },
+          headshotPct: { median: 40, p25: 36, p75: 44, n: MIN_LEVEL_SAMPLE - 1 },
+        },
+      },
+    },
+  };
+
+  it("uses the level's median and half its IQR", () => {
+    expect(referenceFor(3, synthetic).adr).toEqual({ ref: 70, spread: 6, level: 3 });
+  });
+
+  it("falls back per metric when the level has too few players or no data", () => {
+    const r = referenceFor(3, synthetic);
+    expect(r.headshotPct).toEqual(REFERENCE.headshotPct);
+    expect(r.utilityDamagePerRound).toEqual(REFERENCE.utilityDamagePerRound);
+  });
+
+  it("falls back entirely when the level is unknown or not in the baselines", () => {
+    expect(referenceFor(null, synthetic)).toEqual(REFERENCE);
+    expect(referenceFor(7, synthetic)).toEqual(REFERENCE);
+  });
+
+  it("keeps grounded references regardless of level", () => {
+    const r = referenceFor(3, synthetic);
+    expect(r.kd).toEqual(REFERENCE.kd);
+    expect(r.winRate).toEqual(REFERENCE.winRate);
+    expect(r.entryRate).toEqual(REFERENCE.entryRate);
+  });
+
+  it("does not let a tiny IQR make small differences look strong", () => {
+    expect(referenceFor(3, synthetic).clutch1v1.spread).toBeGreaterThanOrEqual(0.02);
+  });
+
+  it("has enough sampled players for every level and metric in the committed baselines", () => {
+    for (let level = 1; level <= 10; level++) {
+      const r = referenceFor(level);
+      for (const key of ["adr", "headshotPct", "clutch1v1", "entrySuccess", "flashSuccess", "utilityDamagePerRound"] as const) {
+        expect(r[key].level, `level ${level} ${key}`).toBe(level);
+      }
+    }
+  });
+
+  it("expects more from higher levels", () => {
+    expect(referenceFor(10).adr.ref).toBeGreaterThan(referenceFor(1).adr.ref);
+    expect(referenceFor(10).headshotPct.ref).toBeGreaterThan(referenceFor(1).headshotPct.ref);
+  });
+});
+
+describe("comparing against the player's own level", () => {
+  const low = referenceFor(2);
+  const high = referenceFor(10);
+
+  /** A player whose numbers are exactly typical for level 2. */
+  function levelTwoStats(): Partial<LifetimeStats> {
+    return {
+      adr: low.adr.ref,
+      headshotPct: low.headshotPct.ref,
+      entrySuccess: low.entrySuccess.ref,
+      clutch1v1Rate: low.clutch1v1.ref,
+      flashesPerRound: low.flashesPerRound.ref,
+      enemiesFlashedPerRound: low.enemiesFlashedPerRound.ref,
+      flashSuccess: low.flashSuccess.ref,
+      utilityDamagePerRound: low.utilityDamagePerRound.ref,
+    };
+  }
+
+  function atLevel(level: number | null, over: Partial<LifetimeStats>): PlayerData {
+    const base = player();
+    return { ...base, profile: { ...base.profile, level }, lifetime: lifetime(over) };
+  }
+
+  it("does not flag a level 2 player for numbers that are normal at level 2", () => {
+    const r = analyzePlayer(atLevel(2, levelTwoStats()));
+    const ids = r.weaknesses.map((w) => w.id);
+    expect(ids).not.toContain("firepower_low");
+    expect(ids).not.toContain("aim_low");
+    expect(ids).not.toContain("utility_low");
+  });
+
+  it("flags the same numbers at level 10 and says it's about the level", () => {
+    // precondition: the two levels really are far apart
+    expect(high.adr.ref - low.adr.ref).toBeGreaterThan(high.adr.spread);
+    const r = analyzePlayer(atLevel(10, levelTwoStats()));
+    const fire = r.weaknesses.find((w) => w.id === "firepower_low");
+    expect(fire).toBeDefined();
+    expect(fire!.detail).toContain("Players at your level usually sit around");
+    expect(fire!.detail).toContain(String(Math.round(high.adr.ref)));
+  });
+
+  it("uses the generic copy, never 'your level', when the level is unknown", () => {
+    const r = analyzePlayer(atLevel(null, { adr: REFERENCE.adr.ref - 3 * REFERENCE.adr.spread }));
+    const fire = r.weaknesses.find((w) => w.id === "firepower_low");
+    expect(fire?.detail).toContain("Solid FACEIT players usually sit around");
+    expect([...r.strengths, ...r.weaknesses].every((i) => !/your level/.test(i.detail + i.coachLine))).toBe(true);
+  });
+
+  it("names the level's typical clutch rate", () => {
+    const ref = referenceFor(LEVEL).clutch1v1;
+    const r = analyzePlayer(player({ lifetime: lifetime({ clutch1v1Rate: ref.ref - 2 * ref.spread }) }));
+    const clutch = r.weaknesses.find((w) => w.id === "clutch_low");
+    expect(clutch?.detail).toContain(`Players at your level win around ${Math.round(ref.ref * 100)}%`);
+  });
+
+  it("flags low utility against the level, not against high-level players", () => {
+    const util = {
+      flashesPerRound: low.flashesPerRound.ref - 1.5 * low.flashesPerRound.spread,
+      enemiesFlashedPerRound: low.enemiesFlashedPerRound.ref - 1.5 * low.enemiesFlashedPerRound.spread,
+      flashSuccess: low.flashSuccess.ref - 1.5 * low.flashSuccess.spread,
+      utilityDamagePerRound: low.utilityDamagePerRound.ref - 1.5 * low.utilityDamagePerRound.spread,
+    };
+    const r = analyzePlayer(atLevel(2, { ...levelTwoStats(), ...util }));
+    const w = r.weaknesses.find((i) => i.id === "utility_low");
+    expect(w?.detail).toContain("typical for your level");
+
+    const typicalLow = analyzePlayer(atLevel(2, levelTwoStats()));
+    expect(typicalLow.weaknesses.some((i) => i.id === "utility_low")).toBe(false);
   });
 });

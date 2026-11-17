@@ -1,11 +1,15 @@
 import type { MapStats, PlayerData } from "@/lib/faceit/types";
-import { MIN_SAMPLE, REFERENCE, zScore } from "./reference";
+import { MIN_SAMPLE, referenceFor, zScore, type ReferenceSet } from "./reference";
 
 /**
  * Derived metrics: everything the rules need, computed once.
- * `z` values are standardized against REFERENCE (positive = better).
+ * `z` values are standardized against `ref` (positive = better): per-level
+ * baselines for the player's FACEIT level where we have them, the generic
+ * REFERENCE otherwise.
  */
 export interface Metrics {
+  /** The reference points this player is compared against. */
+  ref: ReferenceSet;
   matches: number;
   hasEnoughMatches: boolean;
   hasExtended: boolean;
@@ -64,13 +68,14 @@ function coefficientOfVariation(xs: number[]): number | null {
 export function computeMetrics(data: PlayerData): Metrics {
   const { lifetime: lt, maps, recentMatches } = data;
   const hasExtended = lt.extendedRounds >= MIN_SAMPLE.extendedRounds;
+  const ref = referenceFor(data.profile.level);
 
   const utilityZs = hasExtended
     ? [
-        zScore(lt.flashSuccess, REFERENCE.flashSuccess),
-        zScore(lt.enemiesFlashedPerRound, REFERENCE.enemiesFlashedPerRound),
-        zScore(lt.utilityDamagePerRound, REFERENCE.utilityDamagePerRound),
-        zScore(lt.flashesPerRound, REFERENCE.flashesPerRound),
+        zScore(lt.flashSuccess, ref.flashSuccess),
+        zScore(lt.enemiesFlashedPerRound, ref.enemiesFlashedPerRound),
+        zScore(lt.utilityDamagePerRound, ref.utilityDamagePerRound),
+        zScore(lt.flashesPerRound, ref.flashesPerRound),
       ].filter((z): z is number => z !== null)
     : [];
 
@@ -105,6 +110,7 @@ export function computeMetrics(data: PlayerData): Metrics {
   }
 
   return {
+    ref,
     matches: lt.matches,
     hasEnoughMatches: lt.matches >= MIN_SAMPLE.matches,
     hasExtended,
@@ -118,13 +124,13 @@ export function computeMetrics(data: PlayerData): Metrics {
     clutch1v1Count: lt.clutch1v1Count,
     sniperShare: hasExtended ? lt.sniperKillRate : null,
     z: {
-      kd: zScore(lt.kd, REFERENCE.kd),
-      adr: zScore(lt.adr, REFERENCE.adr),
-      headshotPct: zScore(lt.headshotPct, REFERENCE.headshotPct),
-      winRate: zScore(lt.winRate, REFERENCE.winRate),
-      entryRate: hasExtended ? zScore(lt.entryRate, REFERENCE.entryRate) : null,
-      entrySuccess: hasExtended && lt.entryCount >= 30 ? zScore(lt.entrySuccess, REFERENCE.entrySuccess) : null,
-      clutch1v1: lt.clutch1v1Count >= MIN_SAMPLE.clutches ? zScore(lt.clutch1v1Rate, REFERENCE.clutch1v1) : null,
+      kd: zScore(lt.kd, ref.kd),
+      adr: zScore(lt.adr, ref.adr),
+      headshotPct: zScore(lt.headshotPct, ref.headshotPct),
+      winRate: zScore(lt.winRate, ref.winRate),
+      entryRate: hasExtended ? zScore(lt.entryRate, ref.entryRate) : null,
+      entrySuccess: hasExtended && lt.entryCount >= 30 ? zScore(lt.entrySuccess, ref.entrySuccess) : null,
+      clutch1v1: lt.clutch1v1Count >= MIN_SAMPLE.clutches ? zScore(lt.clutch1v1Rate, ref.clutch1v1) : null,
       utility: utilityZs.length >= 2 ? mean(utilityZs) : null,
     },
     recent,

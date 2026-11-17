@@ -46,9 +46,12 @@ SteamID64 and `/profiles/<id>` links work through FACEIT directly.
 `lib/analysis` is pure and deterministic (no LLM). Players are compared against reference points in
 `lib/analysis/reference.ts`:
 
-- **Grounded** (true at every level): K/D 1.0, win rate 50%, opening-duel rate 0.2, opening-duel success 50%.
-- **Sampled** (60 EU players, levels 8–10): ADR, HS%, 1v1 win rate (~38%, not 50%), utility. These lean high,
-  so they're used with wide margins.
+- **Grounded** (true at every level): K/D 1.0, win rate 50%, opening-duel rate 0.2.
+- **Per level** (`lib/analysis/baselines.json`, 200 players per FACEIT level 1–10, each with ≥300 rounds of
+  extended stats): median and IQR of ADR, HS%, 1v1 win rate, opening-duel success and the utility stats. A player
+  is compared against their own level; copy says "for your level" only when that's what it's based on.
+- **Fallback** when the level is unknown or thin: the older sample of 60 EU players at levels 8–10 (and 50% for
+  opening-duel success).
 - **Self-comparison**: per-map vs overall, last 20 matches vs career, match-to-match ADR variation
   (thresholds from a 40-player sample).
 
@@ -66,7 +69,12 @@ npm test
 Behind an HTTP proxy (e.g. a cloud dev sandbox), Node's `fetch` ignores `HTTPS_PROXY` unless you start the server
 with `NODE_USE_ENV_PROXY=1`.
 
+To rebuild the per-level baselines (~5,000 requests, ~6 minutes at 15 req/s; needs Node ≥ 22.21):
+
+```bash
+FACEIT_API_KEY=... npm run baselines -- --per-level 200
+```
+
 ## Not built yet (on purpose)
 
-Match-by-match analysis, accounts and progress tracking, weekly reports, an LLM-written summary layer, per-level
-baselines. The JSON route (`/api/player/[query]`) and the pure analysis module are the foundation for these.
+Match-by-match analysis, accounts and progress tracking, weekly reports, an LLM-written summary layer. The JSON route (`/api/player/[query]`) and the pure analysis module are the foundation for these.
