@@ -47,6 +47,9 @@ sitemap and share previews use the real domain.
 Double-click `start.bat`. It checks that Node.js is installed, installs dependencies on the first run, starts the
 app and opens http://localhost:3000.
 
+Double-click `update.bat` to update the folder to the latest version on GitHub. It lists what's new and asks
+before replacing any files (needs Git; strats saved in the browser aren't affected).
+
 ## Development
 
 ```bash
