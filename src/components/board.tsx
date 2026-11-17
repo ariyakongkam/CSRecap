@@ -52,6 +52,8 @@ export interface BoardProps {
   onLive?: (objects: BoardObject[]) => void;
   /** Something the person should know (e.g. all five players are already placed). */
   onNotice?: (message: string) => void;
+  /** Show callout names on the map. */
+  callouts?: boolean;
 }
 
 type Gesture =
@@ -75,6 +77,7 @@ export function Board({
   onCheckpoint,
   onLive,
   onNotice,
+  callouts = false,
 }: BoardProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -312,7 +315,7 @@ export function Board({
         ))}
       </defs>
 
-      <MapLayer map={map} />
+      <MapLayer map={map} callouts={callouts} />
 
       {/* pen drawings sit right on the map */}
       {objects.map((o) =>

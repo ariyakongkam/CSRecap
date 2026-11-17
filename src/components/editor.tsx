@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Board, type Tool } from "@/components/board";
+import { CalloutToggle } from "@/components/callout-toggle";
 import { ConfirmDialog, Modal } from "@/components/dialog";
 import { Inspector } from "@/components/inspector";
 import { Logo } from "@/components/logo";
@@ -25,6 +26,7 @@ type Confirm = "clear" | "delete" | null;
 const TOOLS = new Set<string>(Object.values(TOOL_KEYS));
 const isTool = (v: unknown): v is Tool => typeof v === "string" && TOOLS.has(v);
 const isPen = (v: unknown): v is PenColor => typeof v === "string" && v in PEN_COLORS;
+const isBool = (v: unknown): v is boolean => typeof v === "boolean";
 const isIndex = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 export function Editor({ id }: { id: string }) {
@@ -42,6 +44,7 @@ export function Editor({ id }: { id: string }) {
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mapPicker, setMapPicker] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [callouts, setCallouts] = useState(false);
 
   // Load the strat and the cached editor preferences.
   useEffect(() => {
@@ -54,6 +57,7 @@ export function Editor({ id }: { id: string }) {
     setStepIndex(Math.min(loadPref(`step:${id}`, 0, isIndex), s.steps.length - 1));
     setTool(loadPref("tool", "select", isTool));
     setPenColor(loadPref("pen", "chalk", isPen));
+    setCallouts(loadPref("callouts", false, isBool));
     setPrefsLoaded(true);
   }, [id]);
 
@@ -62,7 +66,8 @@ export function Editor({ id }: { id: string }) {
     savePref("tool", tool);
     savePref("pen", penColor);
     savePref(`step:${id}`, stepIndex);
-  }, [prefsLoaded, id, tool, penColor, stepIndex]);
+    savePref("callouts", callouts);
+  }, [prefsLoaded, id, tool, penColor, stepIndex, callouts]);
 
   const strat = history?.present ?? null;
 
@@ -301,9 +306,12 @@ export function Editor({ id }: { id: string }) {
               setNotice("Step deleted. Undo with Ctrl+Z.");
             }}
           />
-          <p className="mx-auto w-full max-w-[min(100%,calc(100dvh-250px))] text-sm text-muted" aria-live="polite">
-            {toolHint(tool)}
-          </p>
+          <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] items-center justify-between gap-3">
+            <p className="text-sm text-muted" aria-live="polite">
+              {toolHint(tool)}
+            </p>
+            <CalloutToggle on={callouts} onChange={setCallouts} />
+          </div>
           <div className="relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] overflow-hidden rounded-xl border border-line">
             <Board
               scene={scene}
@@ -316,6 +324,7 @@ export function Editor({ id }: { id: string }) {
               onCheckpoint={checkpoint}
               onLive={liveObjects}
               onNotice={setNotice}
+              callouts={callouts}
             />
             {isEmpty && tool === "select" && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">

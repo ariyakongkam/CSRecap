@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Board } from "@/components/board";
+import { CalloutToggle } from "@/components/callout-toggle";
 import { Logo } from "@/components/logo";
 import { Timeline } from "@/components/timeline";
 import { MAPS } from "@/lib/maps";
@@ -20,6 +21,7 @@ export function Viewer() {
   const [stepIndex, setStepIndex] = useState(0);
   const [time, setTime] = useState<number | null>(0);
   const [playing, setPlaying] = useState(false);
+  const [callouts, setCallouts] = useState(false);
 
   useEffect(() => {
     const read = () => {
@@ -70,8 +72,9 @@ export function Viewer() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3">
-          {strat.steps.length > 1 && (
-            <div role="tablist" aria-label="Steps" className="flex gap-1 overflow-x-auto">
+          <div className="flex items-center justify-between gap-3">
+          {strat.steps.length > 1 ? (
+            <div role="tablist" aria-label="Steps" className="flex min-w-0 gap-1 overflow-x-auto">
               {strat.steps.map((s, i) => (
                 <button
                   key={s.id}
@@ -94,9 +97,13 @@ export function Viewer() {
                 </button>
               ))}
             </div>
+          ) : (
+            <span />
           )}
+            <CalloutToggle on={callouts} onChange={setCallouts} />
+          </div>
           <div className="mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-200px))] overflow-hidden rounded-xl border border-line">
-            <Board scene={scene} time={time} readOnly />
+            <Board scene={scene} time={time} readOnly callouts={callouts} />
           </div>
           <Timeline scene={scene} time={time} onTime={setTime} playing={playing} onPlaying={setPlaying} editable={false} />
         </div>

@@ -17,17 +17,19 @@
   --ct: #5e9eff;
 
   /* board */
-  --void: #0c141c;
+  --void: #0b1117;
+  --map-line: #3fd6d0;
+  --site: rgba(63, 214, 208, 0.13);
   --void-line: #131e29;
   --shadow: #04080c;
   --wall: #0a1118;
-  --floor: #2c3a49;
+  --floor: #0f2a36;
   --floor-seam: rgba(255, 255, 255, 0.035);
   --site-floor: #3a3a33;
   --t-floor: #3b352a;
   --ct-floor: #283a52;
   --plant: rgba(232, 163, 61, 0.35);
-  --site-letter: rgba(236, 229, 211, 0.22);
+  --site-letter: #f2ede1;
   --prop: #4a5b6d;
   --prop-edge: #6a7d92;
   --callout: #c9d3de;
