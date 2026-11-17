@@ -57,6 +57,18 @@ SteamID64 and `/profiles/<id>` links work through FACEIT directly.
 
 Claims need minimum evidence (e.g. 300 rounds of extended stats, 20 clutches, 10 matches per map).
 
+### Progress tracking
+
+"Track this goal" on the focus card saves a starting point in the browser (no account): the target, the time
+the report's data was fetched, and the player's career totals at that moment. On later visits the card measures
+the same target over just the period since then, from fresh FACEIT data:
+
+- ADR, K/D, HS %, win rate, map win rate: per-match stats of matches finished after the start (the last 20).
+- Opening duels, 1v1s, enemies flashed: FACEIT only exposes these as career totals, so the card diffs the totals.
+
+No verdict until there's enough new evidence (3 matches, 15 opening duels, 8 1v1s or 150 rounds); small samples
+are labelled as an early read. Logic is in `lib/analysis/progress.ts`.
+
 ## Development
 
 ```bash
@@ -77,4 +89,4 @@ FACEIT_API_KEY=... npm run baselines -- --per-level 200
 
 ## Not built yet (on purpose)
 
-Match-by-match analysis, accounts and progress tracking, weekly reports, an LLM-written summary layer. The JSON route (`/api/player/[query]`) and the pure analysis module are the foundation for these.
+Match-by-match analysis, accounts (tracking that follows you across devices), weekly reports, an LLM-written summary layer. The JSON route (`/api/player/[query]`) and the pure analysis module are the foundation for these.

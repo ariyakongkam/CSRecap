@@ -1,8 +1,20 @@
 import type { PlayerData } from "@/lib/faceit/types";
-import { article, dec, pct, pct100, round } from "./format";
+import { article, formatTarget } from "./format";
 import type { Metrics } from "./metrics";
 import { REFERENCE } from "./reference";
-import type { FocusPlan, Insight, Playstyle } from "./types";
+import type { FocusPlan, FocusTarget, Insight, Playstyle, TargetKey } from "./types";
+
+function target(key: TargetKey, metric: string, start: number, goalValue: number, map?: string): FocusTarget {
+  return {
+    key,
+    metric,
+    current: formatTarget(key, start),
+    goal: formatTarget(key, goalValue),
+    start,
+    goalValue,
+    ...(map ? { map } : {}),
+  };
+}
 
 /** The player's most-played maps, for concrete tasks. */
 function topMaps(data: PlayerData, n = 2): string[] {
@@ -31,7 +43,7 @@ export function buildFocusPlan(
     return {
       goal: playstyle.id === "balanced" ? "Find your role" : `Lean into being ${article(playstyle.name)} ${playstyle.name}`,
       why: "Nothing in your numbers is clearly holding you back. The next step is turning a solid all-round game into something teams build around.",
-      target: m.adr !== null ? { metric: "ADR", current: round(m.adr), goal: round(m.adr + 5) } : null,
+      target: m.adr !== null ? target("adr", "ADR", m.adr, m.adr + 5) : null,
       tasks: [
         `Before your next 5 matches, agree a role with your team (entry, support or anchor) and stick to it all match.`,
         `On ${maps}, learn one new utility setup per site that helps your role.`,
@@ -47,7 +59,7 @@ export function buildFocusPlan(
     return {
       goal: "Pick your opening duels",
       why: weakness.coachLine,
-      target: { metric: "Opening duels won", current: pct(m.entrySuccess!), goal: pct(Math.min(m.entrySuccess! + 0.05, 0.55)) },
+      target: target("entrySuccess", "Opening duels won", m.entrySuccess!, Math.min(m.entrySuccess! + 0.05, 0.55)),
       tasks: [
         `For your next 5 matches, only take the first fight with a flash thrown or a teammate close enough to trade you. No dry peeks in the first 20 seconds.`,
         `On ${maps}, pick one default position per side where you hold an angle instead of pushing. Let the enemy come to you.`,
@@ -61,7 +73,7 @@ export function buildFocusPlan(
     return {
       goal: "Win more first fights",
       why: weakness.coachLine,
-      target: { metric: "Opening duels won", current: pct(m.entrySuccess!), goal: pct(Math.min(m.entrySuccess! + 0.05, 0.55)) },
+      target: target("entrySuccess", "Opening duels won", m.entrySuccess!, Math.min(m.entrySuccess! + 0.05, 0.55)),
       tasks: [
         `Warm up with 10 minutes of a prefire map for ${maps} before you queue, so the common angles are already in your hands.`,
         `In your next 5 matches, peek the first angle with a teammate's flash or your own pop-flash, never dry.`,
@@ -75,7 +87,7 @@ export function buildFocusPlan(
     return {
       goal: "Choose better fights",
       why: weakness.coachLine,
-      target: { metric: "K/D", current: dec(m.kd), goal: dec(Math.max(m.kd + 0.08, REFERENCE.kd.ref)) },
+      target: target("kd", "K/D", m.kd, Math.max(m.kd + 0.08, REFERENCE.kd.ref)),
       tasks: [
         `After you get a kill, move. In your next 5 matches, never re-peek the same angle right after a kill.`,
         `Stop taking wide swings alone: stay within trading distance of a teammate (a few seconds' walk).`,
@@ -91,8 +103,8 @@ export function buildFocusPlan(
       why: weakness.coachLine,
       target:
         m.adr !== null
-          ? { metric: "ADR", current: round(m.adr), goal: round(m.adr + 6) }
-          : { metric: "K/D", current: dec(m.kd), goal: dec(m.kd + 0.08) },
+          ? target("adr", "ADR", m.adr, m.adr + 6)
+          : target("kd", "K/D", m.kd, m.kd + 0.08),
       tasks: [
         `Use all your utility every round. An HE or molotov that deals 30 damage is free ADR and makes the next fight easier.`,
         `Play near a teammate so every death gets traded and every fight is a 2v1, not a 1v1.`,
@@ -106,7 +118,7 @@ export function buildFocusPlan(
     return {
       goal: "Fix your crosshair placement",
       why: weakness.coachLine,
-      target: { metric: "Headshot %", current: pct100(m.headshotPct), goal: pct100(Math.min(m.headshotPct + 4, 55)) },
+      target: target("headshotPct", "Headshot %", m.headshotPct, Math.min(m.headshotPct + 4, 55)),
       tasks: [
         `Before each session, play 10 minutes of headshot-only deathmatch.`,
         `Walk through ${maps} in an empty server and pre-place your crosshair at head height on every common angle.`,
@@ -120,7 +132,7 @@ export function buildFocusPlan(
     return {
       goal: "Close out late rounds",
       why: weakness.coachLine,
-      target: { metric: "1v1s won", current: pct(m.clutch1v1Rate!), goal: pct(Math.min(m.clutch1v1Rate! + 0.05, 0.45)) },
+      target: target("clutch1v1", "1v1s won", m.clutch1v1Rate!, Math.min(m.clutch1v1Rate! + 0.05, 0.45)),
       tasks: [
         `In 1v1s, check the clock and bomb before you move. Let time pressure force the enemy to come to you.`,
         `Use sound: stop moving and listen for 2 seconds before committing to a fight.`,
@@ -136,11 +148,7 @@ export function buildFocusPlan(
       why: weakness.coachLine,
       target:
         lt.enemiesFlashedPerRound !== null
-          ? {
-              metric: "Enemies flashed / round",
-              current: dec(lt.enemiesFlashedPerRound),
-              goal: dec(lt.enemiesFlashedPerRound + 0.1),
-            }
+          ? target("enemiesFlashedPerRound", "Enemies flashed / round", lt.enemiesFlashedPerRound, lt.enemiesFlashedPerRound + 0.1)
           : null,
       tasks: [
         `Learn 2 pop-flashes and 1 molotov for each site on ${maps}. Practise them in an empty server until they're automatic.`,
@@ -156,7 +164,7 @@ export function buildFocusPlan(
     return {
       goal: `Fix your ${w.map}`,
       why: weakness.coachLine,
-      target: { metric: `${w.map} win rate`, current: pct100(w.winRate), goal: pct100(Math.min(w.winRate + 8, m.winRate)) },
+      target: target("mapWinRate", `${w.map} win rate`, w.winRate, Math.min(w.winRate + 8, m.winRate), w.map),
       tasks: [
         `Watch one pro demo or POV on ${w.map} and note where the player stands on each side in the first 30 seconds.`,
         `Learn 3 utility lineups for ${w.map}: one smoke and one flash for your usual site, plus one retake molotov.`,
@@ -170,7 +178,7 @@ export function buildFocusPlan(
     return {
       goal: "Break the slump",
       why: weakness.coachLine,
-      target: m.recent?.adr != null && m.adr != null ? { metric: "Recent ADR", current: round(m.recent.adr), goal: round(m.adr) } : null,
+      target: m.recent?.adr != null && m.adr != null ? target("adr", "Recent ADR", m.recent.adr, m.adr) : null,
       tasks: [
         `Warm up for 15 minutes (deathmatch plus a prefire map) before your first match of the day.`,
         `Stop for the day after 2 losses in a row. Tilted matches are the most expensive ones.`,
@@ -198,7 +206,7 @@ export function buildFocusPlan(
   return {
     goal: "Turn frags into rounds",
     why: weakness.coachLine,
-    target: { metric: "Win rate", current: pct100(m.winRate), goal: pct100(Math.min(m.winRate + 4, 60)) },
+    target: target("winRate", "Win rate", m.winRate, Math.min(m.winRate + 4, 60)),
     tasks: [
       `Play close enough to teammates that you can trade them. A trade kill is worth more than a solo kill.`,
       `When you get an opening kill, call it and the position immediately so your team can use it.`,

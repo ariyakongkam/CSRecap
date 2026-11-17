@@ -48,11 +48,36 @@ export interface Insight {
   weight: number;
 }
 
+/** Which number a focus target measures; progress tracking knows how to re-measure each one. */
+export type TargetKey =
+  | "adr"
+  | "kd"
+  | "headshotPct"
+  | "winRate"
+  | "mapWinRate"
+  | "entrySuccess"
+  | "clutch1v1"
+  | "enemiesFlashedPerRound";
+
+export interface FocusTarget {
+  key: TargetKey;
+  /** Label, e.g. "ADR" or "Nuke win rate". */
+  metric: string;
+  /** Formatted for display. */
+  current: string;
+  goal: string;
+  /** The same numbers unformatted, in the metric's own unit (rates 0–1, percentages 0–100). */
+  start: number;
+  goalValue: number;
+  /** For `mapWinRate`: the map, as FACEIT names it in match stats (e.g. "Nuke"). */
+  map?: string;
+}
+
 export interface FocusPlan {
   goal: string;
   why: string;
   /** Measurable target the player can check after their next matches. */
-  target: { metric: string; current: string; goal: string } | null;
+  target: FocusTarget | null;
   tasks: string[];
   /** Insight this plan addresses. */
   insightId: string | null;

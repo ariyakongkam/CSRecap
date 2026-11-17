@@ -8,6 +8,7 @@ import { MapStrip } from "@/components/report/map-strip";
 import { ProfileHeader } from "@/components/report/profile-header";
 import { StatGrid } from "@/components/report/stat-grid";
 import { SearchForm } from "@/components/search-form";
+import { progressData } from "@/lib/analysis/progress";
 import { decodeParam, getPlayerReport } from "@/lib/player";
 
 type Props = { params: Promise<{ query: string }> };
@@ -76,7 +77,7 @@ export default async function PlayerPage({ params }: Props) {
       </Reveal>
 
       <Reveal delay={0.25}>
-        <FocusPlanCard plan={report.focus} playerId={data.profile.id} />
+        <FocusPlanCard plan={report.focus} progress={progressData(data)} />
       </Reveal>
 
       <MapStrip maps={data.maps} overallWinRate={data.lifetime.winRate} />

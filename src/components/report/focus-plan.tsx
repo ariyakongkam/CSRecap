@@ -2,14 +2,17 @@
 
 import { ArrowRight, Check, Target } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ProgressData } from "@/lib/analysis/progress";
 import type { FocusPlan } from "@/lib/analysis/types";
+import { GoalProgress } from "./goal-progress";
 
 /**
  * "Your next focus": one goal, a measurable target and three tasks the player
- * can tick off. Ticks live in this browser only (per player + goal); real
- * progress tracking comes later with accounts.
+ * can tick off, plus progress tracking against that target. Ticks and the
+ * tracking start point live in this browser only (per player).
  */
-export function FocusPlanCard({ plan, playerId }: { plan: FocusPlan; playerId: string }) {
+export function FocusPlanCard({ plan, progress }: { plan: FocusPlan; progress: ProgressData }) {
+  const playerId = progress.profile.id;
   const storageKey = `csrecap:focus:${playerId}:${plan.goal}`;
   const [done, setDone] = useState<boolean[]>(() => plan.tasks.map(() => false));
 
@@ -55,6 +58,8 @@ export function FocusPlanCard({ plan, playerId }: { plan: FocusPlan; playerId: s
               <span className="tabular font-display text-xl font-bold text-accent">{plan.target.goal}</span>
             </div>
           )}
+
+          <GoalProgress plan={plan} data={progress} />
         </div>
 
         <div>

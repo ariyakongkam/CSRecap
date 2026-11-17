@@ -172,6 +172,9 @@ function parseLifetime(raw: RawPlayerStats, maps: MapStats[], recent: RecentMatc
     flashSuccess: num(lt, "Flash Success Rate"),
     utilityDamagePerRound: num(lt, "Utility Damage per Round"),
     sniperKillRate: num(lt, "Sniper Kill Rate"),
+    entryWins: int(lt, "Total Entry Wins"),
+    clutch1v1Wins: int(lt, "Total 1v1 Wins"),
+    enemiesFlashedTotal: int(lt, "Total Enemies Flashed"),
   };
 }
 

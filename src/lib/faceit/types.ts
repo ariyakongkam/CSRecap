@@ -57,6 +57,15 @@ export interface LifetimeStats {
   utilityDamagePerRound: number | null;
   /** Share of kills made with a sniper rifle (0–1). */
   sniperKillRate: number | null;
+
+  /**
+   * Raw career totals behind the extended rates. Progress tracking diffs two
+   * snapshots of these to measure opening duels, clutches and utility over
+   * just the matches played in between.
+   */
+  entryWins: number;
+  clutch1v1Wins: number;
+  enemiesFlashedTotal: number;
 }
 
 export interface MapStats {
