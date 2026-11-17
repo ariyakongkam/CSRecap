@@ -39,7 +39,7 @@ export function Viewer() {
       <main className="mx-auto max-w-md px-4 py-24 text-center">
         <h1 className="font-display text-3xl font-semibold">This link doesn&apos;t contain a strategy</h1>
         <p className="mt-2 text-muted">Part of the link is probably missing. Ask whoever sent it to copy it again.</p>
-        <Link href="/" className="btn btn-primary mt-6">
+        <Link href="/app" className="btn btn-primary mt-6">
           Make your own
         </Link>
       </main>

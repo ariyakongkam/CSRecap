@@ -207,7 +207,7 @@ export function Editor({ id }: { id: string }) {
       <main className="mx-auto max-w-md px-4 py-24 text-center">
         <h1 className="font-display text-3xl font-semibold">This strategy isn&apos;t in this browser</h1>
         <p className="mt-2 text-muted">Strategies are saved in the browser they were made in. To see someone else&apos;s, open their share link.</p>
-        <Link href="/" className="btn btn-primary mt-6">
+        <Link href="/app" className="btn btn-primary mt-6">
           All strategies
         </Link>
       </main>
@@ -229,11 +229,11 @@ export function Editor({ id }: { id: string }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b border-line px-3 py-2 sm:gap-3 sm:px-4">
-        <Link href="/" className="btn btn-icon shrink-0" aria-label="All strategies">
+        <Link href="/app" className="btn btn-icon shrink-0" aria-label="All strategies">
           <ArrowLeft className="size-4" />
         </Link>
         <div className="hidden shrink-0 xl:block">
-          <Logo />
+          <Logo href="/app" />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-xl font-semibold">{strat.name || "Untitled strat"}</h1>
@@ -418,7 +418,7 @@ export function Editor({ id }: { id: string }) {
         onConfirm={() => {
           deleteStrat(strat.id);
           setConfirm(null);
-          router.push("/");
+          router.push("/app");
         }}
       />
     </div>

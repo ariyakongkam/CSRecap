@@ -1,17 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
-import { Board } from "@/components/board";
+import { LogoMark } from "@/components/logo-mark";
 import { Modal } from "@/components/dialog";
 import { C4Icon, UtilityIcon } from "@/components/utility-icons";
 import { APP_NAME } from "@/lib/brand";
-import { TEMPLATES } from "@/lib/strat/templates";
-import { sceneOf, type Strat } from "@/lib/strat/types";
+import { MAPS, MAP_IDS } from "@/lib/maps";
 
 function Feature({ art, title, children }: { art: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex h-20 items-center">{art}</div>
+      <div className="flex h-12 items-center">{art}</div>
       <h3 className="mt-2 font-display text-xl font-semibold">{title}</h3>
       <p className="mt-1 text-sm text-muted">{children}</p>
     </div>
@@ -25,20 +23,26 @@ function Feature({ art, title, children }: { art: React.ReactNode; title: string
 export function Welcome({
   open,
   onClose,
-  onExample,
   onBlank,
 }: {
   open: boolean;
   onClose: () => void;
-  onExample: (s: Strat) => void;
   onBlank: () => void;
 }) {
-  const example = useMemo(() => TEMPLATES[0].build(), []);
+  const thumbs = MAP_IDS.filter((m) => MAPS[m].thumb).slice(0, 6);
   return (
     <Modal open={open} onClose={onClose} title={`Welcome to ${APP_NAME}`} wide>
       <div className="grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
-        <div className="hidden aspect-square overflow-hidden rounded-xl border border-line md:block">
-          <Board scene={sceneOf(example, example.steps[0])} time={13} readOnly />
+        <div className="relative hidden aspect-square overflow-hidden rounded-xl border border-line md:block" aria-hidden="true">
+          <div className="grid h-full grid-cols-2 grid-rows-3">
+            {thumbs.map((m) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={m} src={MAPS[m].thumb!} alt="" className="h-full w-full object-cover opacity-60" />
+            ))}
+          </div>
+          <div className="absolute inset-0 grid place-items-center bg-bg/55">
+            <LogoMark className="h-32 w-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]" />
+          </div>
         </div>
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Feature
@@ -46,7 +50,7 @@ export function Welcome({
             art={
               <div className="flex items-center gap-1.5" aria-hidden="true">
                 {["Default", "Execute", "Post-plant"].map((s, i) => (
-                  <span key={s} className={`rounded-md px-2 py-1 text-xs font-semibold ${i === 1 ? "bg-chalk text-chalk-ink" : "bg-panel-2 text-muted"}`}>
+                  <span key={s} className={`rounded-md px-2 py-1 text-xs font-semibold whitespace-nowrap ${i === 1 ? "bg-chalk text-chalk-ink" : "bg-panel-2 text-muted"}`}>
                     {s}
                   </span>
                 ))}
@@ -58,12 +62,12 @@ export function Welcome({
           <Feature
             title="Made for CS2"
             art={
-              <div className="flex items-center gap-2 text-chalk" aria-hidden="true">
-                <UtilityIcon type="smoke" className="size-8" />
-                <UtilityIcon type="flash" className="size-8" />
-                <UtilityIcon type="molotov" className="size-8" />
-                <UtilityIcon type="he" className="size-8" />
-                <C4Icon className="size-8" />
+              <div className="flex items-center gap-1.5 text-brand" aria-hidden="true">
+                <UtilityIcon type="smoke" className="size-7" />
+                <UtilityIcon type="flash" className="size-7" />
+                <UtilityIcon type="molotov" className="size-7" />
+                <UtilityIcon type="he" className="size-7" />
+                <C4Icon className="size-7" />
               </div>
             }
           >
@@ -96,11 +100,8 @@ export function Welcome({
         </div>
       </div>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-        <button type="button" className="btn btn-primary" onClick={() => onExample(TEMPLATES[0].build())}>
-          Open the Mirage example
-        </button>
-        <button type="button" className="btn" onClick={onBlank}>
-          Start a blank strat
+        <button type="button" className="btn btn-primary" onClick={onBlank} data-autofocus>
+          Start my first strat
         </button>
         <button type="button" className="btn border-transparent bg-transparent text-muted" onClick={onClose}>
           Skip

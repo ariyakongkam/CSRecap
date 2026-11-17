@@ -11,6 +11,9 @@
   --muted: #9fadbd;
   --faint: #8090a3;
   --chalk: #ece5d3;
+  --brand: #90b8f8;
+  --brand-hover: #b0cdfb;
+  --brand-ink: #0a1830;
   --chalk-ink: #13202c;
   --danger: #ff7b7b;
   --t: #e8a33d;
@@ -58,6 +61,8 @@
   --color-faint: var(--faint);
   --color-chalk: var(--chalk);
   --color-chalk-ink: var(--chalk-ink);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
   --color-danger: var(--danger);
   --color-team-t: var(--t);
   --color-team-ct: var(--ct);
@@ -152,15 +157,22 @@ body {
   background: #ff9898;
   border-color: #ff9898;
 }
+/* The call to action: light blue, the logo's colour. */
 .btn-primary {
-  background: var(--chalk);
-  border-color: var(--chalk);
-  color: var(--chalk-ink);
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
   font-weight: 600;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #fff8e8;
-  border-color: #fff8e8;
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+.btn-lg {
+  min-height: 3.25rem;
+  padding: 0.75rem 1.4rem;
+  font-size: 1.0625rem;
+  border-radius: 0.65rem;
 }
 
 /* segmented control (map / side pickers) */

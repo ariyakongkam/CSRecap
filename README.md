@@ -33,6 +33,15 @@ bombsites and spawns for Inferno, Nuke (upper level), Ancient, Anubis, Train and
 Accounts and team workspaces, real-time co-editing, comments, more maps, and the plan-vs-reality check against
 FACEIT demos (see the product research doc).
 
+## Pages
+
+- `/`: landing page (SEO: metadata, Open Graph image, FAQ/HowTo/SoftwareApplication structured data, sitemap,
+  robots.txt, `llms.txt` for AI answer engines).
+- `/app`: start a strat and your saved strats. `/edit?id=…`: the planner. `/view#…`: a shared strat.
+
+Set `NEXT_PUBLIC_SITE_URL` (for example `https://csrecap.com`) when the site goes live, so canonical links, the
+sitemap and share previews use the real domain.
+
 ## Run it on Windows
 
 Double-click `start.bat`. It checks that Node.js is installed, installs dependencies on the first run, starts the

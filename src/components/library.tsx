@@ -2,58 +2,16 @@
 
 import { CircleHelp, Copy, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Board } from "@/components/board";
 import { Logo } from "@/components/logo";
-import { roundClock } from "@/components/timeline";
 import { MAPS, MAP_IDS, type MapId } from "@/lib/maps";
 import { createStrat, duplicateStrat } from "@/lib/strat/model";
 import { deleteStrat, listStrats, saveStrat } from "@/lib/strat/storage";
-import { TEMPLATES } from "@/lib/strat/templates";
-import { stratDuration } from "@/lib/strat/timeline";
 import { sceneOf, type Side, type Strat } from "@/lib/strat/types";
 import { MapCard } from "@/components/map-card";
 import { Welcome } from "@/components/welcome";
 import { loadPref, savePref } from "@/lib/strat/storage";
-
-/** The hero: the Mirage example playing on a loop, the way a team would see it. */
-function LiveDemo({ onOpen }: { onOpen: (s: Strat) => void }) {
-  const strat = useMemo(() => TEMPLATES[0].build(), []);
-  const scene = sceneOf(strat, strat.steps[0]);
-  const end = stratDuration(scene) + 2;
-  const [time, setTime] = useState(13);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let frame = 0;
-    let last: number | null = null;
-    let t = 0;
-    const tick = (now: number) => {
-      t += last === null ? 0 : (now - last) / 1000;
-      last = now;
-      if (t > end + 1.5) t = 0; // hold the final frame, then loop
-      setTime(Math.min(t, end));
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [end]);
-
-  return (
-    <div className="relative">
-      <div className="aspect-square overflow-hidden rounded-2xl border border-line shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
-        <Board scene={scene} time={time} readOnly />
-      </div>
-      <div className="absolute top-3 left-3 flex items-center gap-3 rounded-lg border border-line bg-bg/90 px-3 py-2">
-        <span className="font-display text-2xl leading-none font-semibold tabular-nums">{roundClock(time)}</span>
-        <span className="text-sm text-muted">{strat.name}</span>
-      </div>
-      <button type="button" onClick={() => onOpen(strat)} className="btn btn-primary absolute right-3 bottom-3">
-        Open this strat
-      </button>
-    </div>
-  );
-}
 
 export function Library() {
   const router = useRouter();
@@ -61,7 +19,6 @@ export function Library() {
   const [map, setMap] = useState<MapId>("mirage");
   const [side, setSide] = useState<Side>("T");
   const [error, setError] = useState<string | null>(null);
-  const examples = useMemo(() => TEMPLATES.map((t) => ({ t, strat: t.build() })), []);
   const [welcome, setWelcome] = useState(false);
 
   useEffect(() => {
@@ -99,39 +56,14 @@ export function Library() {
       <Welcome
         open={welcome}
         onClose={closeWelcome}
-        onExample={(s) => {
-          closeWelcome();
-          open(s);
-        }}
         onBlank={() => {
           closeWelcome();
           open(createStrat("mirage", "T", "Mirage T strat"));
         }}
       />
 
-      <section className="grid items-center gap-8 py-6 lg:grid-cols-[1fr_1.05fr] lg:gap-12 lg:py-10">
-        <div>
-          <h1 className="font-display text-5xl leading-[0.95] font-bold text-balance sm:text-6xl lg:text-7xl">
-            Draw the execute once. Your team watches it play.
-          </h1>
-          <p className="mt-5 max-w-lg text-lg text-muted">
-            Put five players on the map, draw their routes and drop each smoke at the second it lands. Press play, then send the link
-            to your team. They don&apos;t need an account to open it.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <a href="#new" className="btn btn-primary">
-              <Plus className="size-4" /> Start a strat
-            </a>
-            <button type="button" className="btn" onClick={() => open(examples[1].t.build())}>
-              Try the Dust II example
-            </button>
-          </div>
-        </div>
-        <LiveDemo onOpen={open} />
-      </section>
-
-      <section id="new" className="mt-10 scroll-mt-6 rounded-2xl border border-line bg-panel p-5 sm:p-7">
-        <h2 className="font-display text-3xl font-semibold">Start a strat</h2>
+      <section id="new" className="mt-4 scroll-mt-6 rounded-2xl border border-line bg-panel p-5 sm:p-7">
+        <h1 className="font-display text-4xl font-semibold">Start a strat</h1>
         <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
             <span className="label">Map</span>
@@ -171,30 +103,6 @@ export function Library() {
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="font-display text-3xl font-semibold">Examples</h2>
-        <p className="mt-1 text-muted">Open one to see how a full execute is laid out, then make it yours.</p>
-        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-          {examples.map(({ t, strat }) => (
-            <li key={t.id}>
-              <button
-                type="button"
-                onClick={() => open(t.build())}
-                className="flex w-full items-center gap-4 rounded-xl border border-line bg-panel p-3 text-left transition-colors hover:border-line-strong"
-              >
-                <span className="size-28 shrink-0 overflow-hidden rounded-lg border border-line sm:size-32">
-                  <Board scene={sceneOf(strat, strat.steps[0])} time={null} readOnly />
-                </span>
-                <span>
-                  <span className="block font-display text-xl font-semibold">{t.name}</span>
-                  <span className="mt-1 block text-sm text-muted">{t.description}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
       </section>
 
       <section className="mt-12">

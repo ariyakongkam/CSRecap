@@ -59,6 +59,8 @@ export interface BoardProps {
   onNotice?: (message: string) => void;
   /** Show callout names on the map. */
   callouts?: boolean;
+  /** Part of the 1000×1000 board to show, e.g. to crop in on one site. */
+  viewBox?: string;
 }
 
 type Gesture =
@@ -84,6 +86,7 @@ export function Board({
   onLive,
   onNotice,
   callouts = false,
+  viewBox = "0 0 1000 1000",
 }: BoardProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -344,7 +347,7 @@ export function Board({
   return (
     <svg
       ref={svgRef}
-      viewBox="0 0 1000 1000"
+      viewBox={viewBox}
       className="block h-full w-full touch-none select-none"
       style={{ cursor }}
       onPointerDown={onBackgroundDown}
