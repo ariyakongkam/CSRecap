@@ -360,7 +360,7 @@ export function Editor({ id }: { id: string }) {
       </div>
 
       <Modal open={mapPicker} onClose={() => setMapPicker(false)} title="Change map" wide>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {MAP_IDS.map((m) => (
             <MapCard
               key={m}
@@ -376,6 +376,7 @@ export function Editor({ id }: { id: string }) {
             />
           ))}
         </div>
+        <p className="mt-4 text-xs text-faint">Radar overviews and screenshots © Valve Corporation.</p>
       </Modal>
 
       <ConfirmDialog

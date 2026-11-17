@@ -106,7 +106,7 @@ export function Library() {
         <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
             <span className="label">Map</span>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {MAP_IDS.map((id) => (
                 <MapCard key={id} id={id} selected={map === id} onClick={() => setMap(id)} />
               ))}
@@ -232,7 +232,7 @@ export function Library() {
       </section>
 
       <footer className="mt-16 border-t border-line pt-6 text-sm text-faint">
-        Maps are simplified layouts drawn for planning, not official radar images. Not affiliated with Valve.
+        Map radar overviews and screenshots are © Valve Corporation. Execute is not affiliated with or endorsed by Valve.
       </footer>
     </div>
   );

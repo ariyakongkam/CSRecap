@@ -88,11 +88,11 @@ function mirageAExecute(): Strat {
   b.strat.call = "Default into A when mid is quiet and CT has two on A. Call at 1:15.";
   b.strat.notes = "Abort: if Palace entry dies before smokes land, fall back to a mid split.\nPlant default for the post-plant.";
   b.name("Execute");
-  const p1 = b.player(1, "Palace entry", p(895, 470), 90);
+  const p1 = b.player(1, "Palace entry", p(872, 470), 90);
   const p2 = b.player(2, "Ramp support", p(865, 410), 110);
-  const p3 = b.player(3, "Smokes", p(895, 350));
+  const p3 = b.player(3, "Smokes", p(872, 350));
   const p4 = b.player(4, "Flash", p(865, 290));
-  const p5 = b.player(5, "Lurk mid", p(890, 230), 180);
+  const p5 = b.player(5, "Lurk mid", p(870, 230), 180);
   // Palace: down the T side, through Palace, out onto A.
   b.route(p1, 3, p(880, 600), p(860, 650), p(860, 760), p(700, 770));
   // Ramp: along the bottom corridor to the top of A Ramp.

@@ -1,23 +1,13 @@
 /**
- * Map layouts, drawn in our own style from our own geometry.
+ * Maps use Valve's official CS2 radar overviews as the board (public/maps,
+ * © Valve Corporation), the same top-down images the game and FACEIT's 2D
+ * viewer use. The board is 1000×1000 units over the 1024px radar.
  *
- * The floor outlines and cover in `traced/*.json` were traced from the CS2
- * radar overviews by `scripts/trace-maps.py`: only the shape of the playable
- * area is kept (polygons on our 1000×1000 board), no image data. Callout
- * areas below are placed on that geometry by hand; bombsite and spawn
- * positions come from the maps' public overview configs.
- *
- * Areas are what a plan can be checked against ("smoke landed in Jungle"),
- * and what the example strats are positioned by.
+ * Callout areas below are placed on that board by hand; bombsite and spawn
+ * positions come from the maps' public overview configs. Areas are what a
+ * plan can be checked against ("smoke landed in Jungle"), and what the
+ * example strats are positioned by.
  */
-import ancient from "./traced/ancient.json";
-import anubis from "./traced/anubis.json";
-import dust2 from "./traced/dust2.json";
-import inferno from "./traced/inferno.json";
-import mirage from "./traced/mirage.json";
-import nuke from "./traced/nuke.json";
-import overpass from "./traced/overpass.json";
-import train from "./traced/train.json";
 
 export type Team = "T" | "CT";
 
@@ -42,22 +32,20 @@ export interface Callout {
   y: number;
 }
 
-export interface Traced {
-  /** SVG path data of the walkable floor (outer outlines and holes, even-odd). */
-  floor: string;
-  /** Cover objects as four-corner polygons. */
-  props: number[][][];
-}
-
 export interface MapDef {
   id: MapId;
   name: string;
-  traced: Traced | null;
+  /** Radar overview image (public path), or null for the blank board. */
+  radar: string | null;
+  /** In-game screenshot used behind the map picker. */
+  thumb: string | null;
   areas: Area[];
   callouts: Callout[];
 }
 
 export type MapId = "mirage" | "dust2" | "inferno" | "nuke" | "ancient" | "anubis" | "train" | "overpass" | "blank";
+
+const images = (m: string) => ({ radar: `/maps/${m}-radar.webp`, thumb: `/maps/${m}-thumb.webp` });
 
 const r = (id: string, name: string, x: number, y: number, w: number, h: number, extra: Partial<Area> = {}): Area => ({
   id,
@@ -83,7 +71,7 @@ function basics(sites: { A?: [number, number]; B?: [number, number] }, t: [numbe
 const MIRAGE: MapDef = {
   id: "mirage",
   name: "Mirage",
-  traced: mirage,
+  ...images("mirage"),
   areas: [
     r("t-spawn", "T Spawn", 845, 290, 70, 130, { spawn: "T" }),
     r("palace-path", "", 850, 430, 55, 180),
@@ -115,7 +103,7 @@ const MIRAGE: MapDef = {
 const DUST2: MapDef = {
   id: "dust2",
   name: "Dust II",
-  traced: dust2,
+  ...images("dust2"),
   areas: [
     r("t-spawn", "T Spawn", 285, 850, 200, 90, { spawn: "T" }),
     r("outside-long", "Outside Long", 580, 700, 90, 140),
@@ -143,13 +131,13 @@ const DUST2: MapDef = {
 export const MAPS: Record<MapId, MapDef> = {
   mirage: MIRAGE,
   dust2: DUST2,
-  inferno: { id: "inferno", name: "Inferno", traced: inferno, areas: basics({ A: [0.81, 0.69], B: [0.49, 0.22] }, [0.1, 0.67], [0.9, 0.35]), callouts: [] },
-  nuke: { id: "nuke", name: "Nuke (upper)", traced: nuke, areas: basics({ A: [0.58, 0.48] }, [0.19, 0.54], [0.82, 0.45]), callouts: [] },
-  ancient: { id: "ancient", name: "Ancient", traced: ancient, areas: basics({ A: [0.31, 0.25], B: [0.8, 0.4] }, [0.485, 0.87], [0.51, 0.17]), callouts: [] },
-  anubis: { id: "anubis", name: "Anubis", traced: anubis, areas: basics({ A: [0.755, 0.245], B: [0.325, 0.49] }, [0.47, 0.905], [0.42, 0.215]), callouts: [] },
-  train: { id: "train", name: "Train", traced: train, areas: basics({ A: [0.63, 0.49], B: [0.52, 0.76] }, [0.12, 0.25], [0.86, 0.77]), callouts: [] },
-  overpass: { id: "overpass", name: "Overpass", traced: overpass, areas: basics({ A: [0.49, 0.18], B: [0.69, 0.32] }, [0.66, 0.93], [0.43, 0.07]), callouts: [] },
-  blank: { id: "blank", name: "Blank board", traced: null, areas: [], callouts: [] },
+  inferno: { id: "inferno", name: "Inferno", ...images("inferno"), areas: basics({ A: [0.81, 0.69], B: [0.49, 0.22] }, [0.1, 0.67], [0.9, 0.35]), callouts: [] },
+  nuke: { id: "nuke", name: "Nuke (upper)", ...images("nuke"), areas: basics({ A: [0.58, 0.48] }, [0.19, 0.54], [0.82, 0.45]), callouts: [] },
+  ancient: { id: "ancient", name: "Ancient", ...images("ancient"), areas: basics({ A: [0.31, 0.25], B: [0.8, 0.4] }, [0.485, 0.87], [0.51, 0.17]), callouts: [] },
+  anubis: { id: "anubis", name: "Anubis", ...images("anubis"), areas: basics({ A: [0.755, 0.245], B: [0.325, 0.49] }, [0.47, 0.905], [0.42, 0.215]), callouts: [] },
+  train: { id: "train", name: "Train", ...images("train"), areas: basics({ A: [0.63, 0.49], B: [0.52, 0.76] }, [0.12, 0.25], [0.86, 0.77]), callouts: [] },
+  overpass: { id: "overpass", name: "Overpass", ...images("overpass"), areas: basics({ A: [0.49, 0.18], B: [0.69, 0.32] }, [0.66, 0.93], [0.43, 0.07]), callouts: [] },
+  blank: { id: "blank", name: "Blank board", radar: null, thumb: null, areas: [], callouts: [] },
 };
 export const MAP_IDS = Object.keys(MAPS) as MapId[];
 
