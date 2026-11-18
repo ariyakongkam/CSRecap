@@ -130,7 +130,16 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
   login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
 
-## Hosting on Cloudflare Pages (the owner's choice; domain bought at Cloudflare)
+## Hosting on Cloudflare (the owner's choice; domain bought at Cloudflare)
+
+- The owner's project turned out to be a **Worker** (Workers Builds), not Pages. `wrangler.jsonc` serves `out/` as
+  static assets (`html_handling: auto-trailing-slash`, `not_found_handling: 404-page`; `_headers` applies).
+  Worker settings: production branch `claude/hopeful-edison-tja98v` (the repo's default branch is an old CSRecap
+  branch, which is what failed first with "Missing script: export"), build command `npm run export`, deploy command
+  `npx wrangler deploy`. Checked with `wrangler deploy --dry-run` and `wrangler dev` + the browser suite.
+- If a Pages project is used instead, the notes below apply.
+
+### Pages (alternative)
 
 - Pages project `radstrat` connected to GitHub `ariyakongkam/csrecap`, production branch
   `claude/hopeful-edison-tja98v`, framework preset None, build command `npm run export`, output folder `out`,

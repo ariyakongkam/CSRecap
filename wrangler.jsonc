@@ -1,0 +1,14 @@
+// Cloudflare Workers settings: radstrat is a static site, so the Worker only serves the files that
+// `npm run export` builds into out/. Cloudflare's build runs `npm run export`, then `npx wrangler deploy`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "radstrat",
+  "compatibility_date": "2025-11-01",
+  "assets": {
+    "directory": "./out",
+    // /app serves app.html, /edit serves edit.html …
+    "html_handling": "auto-trailing-slash",
+    // unknown paths get the site's own 404 page
+    "not_found_handling": "404-page"
+  }
+}
