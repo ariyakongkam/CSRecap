@@ -69,6 +69,7 @@ export function visibilityAt(o: BoardObject, time: number | null): Visibility {
     case "drawing":
     case "lineup":
     case "vision":
+    case "marker":
       return { show: true, opacity: 1 };
   }
 }

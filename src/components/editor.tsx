@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,13 +18,14 @@ import { continueStep, move, removeObject } from "@/lib/strat/model";
 import { shareUrl } from "@/lib/strat/share";
 import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
 import { stratDuration } from "@/lib/strat/timeline";
-import { DEFAULT_PEN, isHexColor, sceneOf, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
+import { DEFAULT_PEN, MARKER_TYPES, isHexColor, sceneOf, type MarkerType, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
 
 type SaveState = { status: "saved" | "saving" | "failed"; at: Date | null };
 type Confirm = "clear" | "delete" | null;
 
 const TOOLS = new Set<string>(Object.values(TOOL_KEYS));
 const isTool = (v: unknown): v is Tool => typeof v === "string" && TOOLS.has(v);
+const isMarker = (v: unknown): v is MarkerType => typeof v === "string" && (MARKER_TYPES as string[]).includes(v);
 const SHAPES: DrawShape[] = ["free", "line", "arrow", "rect", "dashed", "dashed-arrow"];
 const isPen = (v: unknown): v is PenSettings => {
   if (!v || typeof v !== "object") return false;
@@ -50,7 +51,11 @@ export function Editor({ id }: { id: string }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [tool, setTool] = useState<Tool>("select");
   const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
+  const [marker, setMarker] = useState<MarkerType>("anchor");
+  const [relocate, setRelocate] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // "Move to…" belongs to the selected item; picking something else cancels it.
+  if (relocate && relocate !== selectedId) setRelocate(null);
   const [time, setTime] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [save, setSave] = useState<SaveState>({ status: "saved", at: null });
@@ -71,6 +76,7 @@ export function Editor({ id }: { id: string }) {
     setStepIndex(Math.min(loadPref(`step:${id}`, 0, isIndex), s.steps.length - 1));
     setTool(loadPref("tool", "select", isTool));
     setPen(loadPref("pen2", DEFAULT_PEN, isPen));
+    setMarker(loadPref("marker", "anchor", isMarker));
     setCallouts(loadPref("callouts", false, isBool));
     setPrefsLoaded(true);
   }, [id]);
@@ -79,9 +85,10 @@ export function Editor({ id }: { id: string }) {
     if (!prefsLoaded) return;
     savePref("tool", tool);
     savePref("pen2", pen);
+    savePref("marker", marker);
     savePref(`step:${id}`, stepIndex);
     savePref("callouts", callouts);
-  }, [prefsLoaded, id, tool, pen, stepIndex, callouts]);
+  }, [prefsLoaded, id, tool, pen, marker, stepIndex, callouts]);
 
   const strat = history?.present ?? null;
 
@@ -184,6 +191,7 @@ export function Editor({ id }: { id: string }) {
         return;
       }
       if (e.key === "Escape") {
+        setRelocate(null);
         setSelectedId(null);
         setTool("select");
         return;
@@ -246,7 +254,7 @@ export function Editor({ id }: { id: string }) {
           <Logo href="/app" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-xl font-semibold">{strat.name || "Untitled strat"}</h1>
+          <h1 className="truncate font-display text-xl font-semibold" title={strat.name || "Untitled strat"}>{strat.name || "Untitled strat"}</h1>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <button
               type="button"
@@ -276,10 +284,6 @@ export function Editor({ id }: { id: string }) {
           <Eraser className="size-4" />
           <span className="max-lg:hidden">Clear board</span>
         </button>
-        <button type="button" className="btn shrink-0 text-danger max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("delete")} title="Delete this strategy" aria-label="Delete strategy">
-          <Trash2 className="size-4" />
-          <span className="max-lg:hidden">Delete strategy</span>
-        </button>
         <button
           type="button"
           className={`btn shrink-0 max-sm:w-11 max-sm:px-0 ${save.status === "failed" ? "border-danger text-danger" : ""}`}
@@ -307,7 +311,7 @@ export function Editor({ id }: { id: string }) {
         <div className="flex min-w-0 flex-col gap-2">
           <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-285px))] xl:max-w-[min(100%,calc(100dvh-275px))] items-center justify-between gap-3">
             <p className="text-sm text-muted" aria-live="polite">
-              {toolHint(tool)}
+              {relocate ? "Click where it should go. Esc cancels." : toolHint(tool)}
             </p>
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
@@ -317,6 +321,9 @@ export function Editor({ id }: { id: string }) {
               time={time}
               tool={tool}
               pen={pen}
+              marker={marker}
+              relocate={relocate}
+              onRelocated={() => setRelocate(null)}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onCommit={commitObjects}
@@ -335,7 +342,7 @@ export function Editor({ id }: { id: string }) {
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
                 <div className="pointer-events-auto max-w-xs rounded-xl border border-line bg-bg/95 p-5 text-center shadow-2xl">
                   <h2 className="font-display text-2xl font-semibold">Place your five</h2>
-                  <p className="mt-1 text-sm text-muted">Each click places one item, then you&apos;re back on the cursor. Press 1 for the next teammate.</p>
+                  <p className="mt-1 text-sm text-muted">Each click places one item, then you&apos;re back on the cursor. Pick the teammate tool again for the next one.</p>
                   <button type="button" className="btn btn-primary mt-4" onClick={() => setTool("mate")}>
                     Place a teammate
                   </button>
@@ -391,6 +398,11 @@ export function Editor({ id }: { id: string }) {
             tool={tool}
             pen={pen}
             onPen={setPen}
+            marker={marker}
+            onMarker={setMarker}
+            onDeleteStrat={() => setConfirm("delete")}
+            relocating={relocate}
+            onRelocate={setRelocate}
           />
         </aside>
       </div>

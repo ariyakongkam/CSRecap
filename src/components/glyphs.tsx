@@ -9,6 +9,7 @@ const UTILITY_COLOR: Record<UtilityObject["type"], string> = {
   flash: "var(--flash)",
   molotov: "var(--molotov)",
   he: "var(--he)",
+  decoy: "var(--decoy)",
 };
 
 /** A grenade on the board: its area, with the grenade's icon on a disc in the middle. */
@@ -29,8 +30,8 @@ export function UtilityGlyph({ u, selected }: { u: UtilityObject; selected: bool
         strokeWidth="2"
         strokeDasharray={u.type === "molotov" ? "5 4" : undefined}
       />
-      <circle cx={u.x} cy={u.y} r="13" fill="var(--icon-disc)" stroke={color} strokeWidth="1.5" />
-      <g transform={`translate(${u.x - 9} ${u.y - 9}) scale(0.75)`} color={color}>
+      <circle cx={u.x} cy={u.y} r="15" fill="var(--icon-disc)" stroke={color} strokeWidth="1.5" />
+      <g transform={`translate(${u.x - 10.8} ${u.y - 10.8}) scale(0.9)`} color={color}>
         <UtilityShape type={u.type} />
       </g>
     </g>

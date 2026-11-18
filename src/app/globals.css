@@ -47,6 +47,7 @@
   --flash: #fff3b0;
   --molotov: #ff7a3d;
   --he: #ff5d7a;
+  --decoy: #b9a6ff;
   --note-bg: rgba(10, 17, 24, 0.9);
   --note-border: #34475e;
 }
@@ -92,7 +93,7 @@ svg[role="application"]:focus-visible {
   outline: none;
 }
 .board-frame:has(> svg:focus-visible) {
-  outline: 2px solid var(--chalk);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 

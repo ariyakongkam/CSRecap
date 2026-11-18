@@ -3,11 +3,13 @@ import { clamp, round1 } from "./geometry";
 import {
   CONE_DEGREES,
   CONE_LENGTH,
+  MARKER_TYPES,
   STRAT_VERSION,
   isHexColor,
   type BoardObject,
   type ConeWidth,
   type DrawShape,
+  type MarkerType,
   type PlacedPlayer,
   type Pt,
   type Scene,
@@ -156,7 +158,7 @@ export function youtubeId(url: string): string | null {
 
 // ---------- validation (shared links and storage are untrusted) ----------
 
-const UTILITY: UtilityType[] = ["smoke", "flash", "molotov", "he"];
+const UTILITY: UtilityType[] = ["smoke", "flash", "molotov", "he", "decoy"];
 const DRAW_SHAPES: DrawShape[] = ["free", "line", "arrow", "rect", "dashed", "dashed-arrow"];
 /** Pen colours saved by name before the colour picker existed. */
 const LEGACY_PEN: Record<string, string> = { chalk: "#ffffff", t: "#e8a33d", ct: "#5e9eff", red: "#ff4d4d", green: "#69db7c" };
@@ -215,6 +217,11 @@ function parseObject(v: unknown): BoardObject | null {
       const p = pt(o);
       if (!p || !UTILITY.includes(o.type as UtilityType)) return null;
       return { id, kind: "utility", type: o.type as UtilityType, t, ...p };
+    }
+    case "marker": {
+      const p = pt(o);
+      if (!p || !MARKER_TYPES.includes(o.icon as MarkerType)) return null;
+      return { id, kind: "marker", icon: o.icon as MarkerType, ...p };
     }
     case "text": {
       const p = pt(o);
@@ -343,6 +350,7 @@ export function compact(strat: Strat): Strat {
             return { ...o, points: o.points.map(r) };
           case "player":
           case "lineup":
+          case "marker":
             return { ...o, ...r(o) };
           case "vision":
             return { ...o, ...r(o), length: Math.round(o.length) };

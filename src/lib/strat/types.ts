@@ -1,7 +1,9 @@
 import type { MapId } from "@/lib/maps";
 
 export type Side = "T" | "CT";
-export type UtilityType = "smoke" | "flash" | "molotov" | "he";
+export type UtilityType = "smoke" | "flash" | "molotov" | "he" | "decoy";
+/** Map markers for roles and calls: who anchors, where the AWP holds, where to boost … */
+export type MarkerType = "anchor" | "awp" | "entry" | "support" | "lurk" | "igl" | "hold" | "boost" | "rotate" | "danger" | "pick";
 /** Pen strokes: freehand, or a shape from a start point to an end point. */
 export type DrawShape = "free" | "line" | "arrow" | "rect" | "dashed" | "dashed-arrow";
 /** Sight cones come in three widths. */
@@ -100,7 +102,15 @@ export interface LineupObject extends Pt {
   url: string;
 }
 
+/** A role or call marker on the map. */
+export interface MarkerObject extends Pt {
+  id: string;
+  kind: "marker";
+  icon: MarkerType;
+}
+
 export type BoardObject =
+  | MarkerObject
   | PlacedPlayer
   | RouteObject
   | UtilityObject
@@ -147,6 +157,7 @@ export const UTILITY_DURATION: Record<UtilityType, number> = {
   molotov: 7,
   flash: 2,
   he: 1,
+  decoy: 15,
 };
 
 /** Drawn radius on the 1000-unit board. */
@@ -155,13 +166,31 @@ export const UTILITY_RADIUS: Record<UtilityType, number> = {
   molotov: 22,
   flash: 16,
   he: 18,
+  decoy: 14,
 };
 
 export const UTILITY_LABEL: Record<UtilityType, string> = {
   smoke: "Smoke",
   flash: "Flash",
-  molotov: "Molotov",
+  molotov: "Molotov / incendiary",
   he: "HE grenade",
+  decoy: "Decoy",
+};
+
+export const MARKER_TYPES: MarkerType[] = ["anchor", "awp", "entry", "support", "lurk", "igl", "hold", "boost", "rotate", "danger", "pick"];
+
+export const MARKER_LABEL: Record<MarkerType, string> = {
+  anchor: "Anchor",
+  awp: "AWP",
+  entry: "Entry",
+  support: "Support",
+  lurk: "Lurk",
+  igl: "IGL",
+  hold: "Hold this angle",
+  boost: "Boost",
+  rotate: "Rotate",
+  danger: "Danger",
+  pick: "Expected pick",
 };
 
 /** The pen's colour swatches. Any other colour can be picked too. */

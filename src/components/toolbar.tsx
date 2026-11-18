@@ -1,6 +1,6 @@
 "use client";
 
-import { Eraser, MapPin, MousePointer2, Pencil, Spline, Type } from "lucide-react";
+import { Eraser, Flag, MapPin, MousePointer2, Pencil, Spline, Type } from "lucide-react";
 import { Fragment } from "react";
 import { enemyOf } from "@/lib/strat/model";
 import { C4Icon, UtilityIcon } from "@/components/utility-icons";
@@ -64,8 +64,9 @@ function groups(side: Side): ToolDef[][] {
     [
       { id: "smoke", label: "Smoke", key: "S", icon: <UtilityIcon type="smoke" /> },
       { id: "flash", label: "Flash", key: "F", icon: <UtilityIcon type="flash" /> },
-      { id: "molotov", label: "Molotov", key: "M", icon: <UtilityIcon type="molotov" /> },
+      { id: "molotov", label: "Molotov / incendiary", key: "M", icon: <UtilityIcon type="molotov" /> },
       { id: "he", label: "HE grenade", key: "H", icon: <UtilityIcon type="he" /> },
+      { id: "decoy", label: "Decoy", key: "D", icon: <UtilityIcon type="decoy" /> },
     ],
     [
       {
@@ -75,6 +76,7 @@ function groups(side: Side): ToolDef[][] {
         icon: <C4Icon />,
       },
       { id: "lineup", label: "Lineup link", key: "L", icon: <MapPin className="size-5" /> },
+      { id: "marker", label: "Marker: anchor, AWP, lurk …", key: "K", icon: <Flag className="size-5" /> },
     ],
   ];
 }
@@ -86,7 +88,7 @@ export function Toolbar({ tool, onTool, side }: { tool: Tool; onTool: (t: Tool) 
       <div
         role="toolbar"
         aria-label="Board tools"
-        className="flex items-center gap-1 overflow-x-auto rounded-xl border border-line bg-panel p-1.5 lg:grid lg:grid-cols-2 lg:overflow-visible"
+        className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-panel p-1.5 lg:grid lg:grid-cols-2"
       >
         {groups(side).map((group, gi) => (
           <Fragment key={gi}>
@@ -148,6 +150,9 @@ export function toolHint(tool: Tool): string {
     case "flash":
     case "molotov":
     case "he":
+    case "decoy":
       return "Click where it lands. Then you're back on the cursor.";
+    case "marker":
+      return "Pick a marker on the right, then click the map. Then you're back on the cursor.";
   }
 }

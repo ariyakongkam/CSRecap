@@ -334,3 +334,22 @@ describe("templates", () => {
     }
   });
 });
+
+describe("markers and decoys", () => {
+  const strat = (objects: unknown[]) =>
+    parseStrat({ v: 2, id: "s", name: "S", map: "mirage", side: "T", call: "", notes: "", steps: [{ id: "a", name: "A", objects }] });
+
+  it("keeps valid markers and decoys and drops unknown ones", () => {
+    const s = strat([
+      { id: "m", kind: "marker", icon: "anchor", x: 10, y: 20 },
+      { id: "x", kind: "marker", icon: "nuke-everything", x: 10, y: 20 },
+      { id: "d", kind: "utility", type: "decoy", t: 0, x: 5, y: 5 },
+    ])!;
+    expect(s.steps[0].objects.map((o) => o.id)).toEqual(["m", "d"]);
+  });
+
+  it("carries markers into the next phase", () => {
+    const next = continueStep(newStep("A", [{ id: "m", kind: "marker", icon: "awp", x: 1, y: 2 }]), "B");
+    expect(next.objects[0]).toMatchObject({ kind: "marker", icon: "awp", x: 1, y: 2 });
+  });
+});

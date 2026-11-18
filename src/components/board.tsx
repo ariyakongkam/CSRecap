@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { BombGlyph, LineupGlyph, TEAM_COLOR, UtilityGlyph, VisionCone, coneTip } from "@/components/glyphs";
 import { MapLayer } from "@/components/map-layer";
+import { MarkerGlyph } from "@/components/marker-icons";
 import { loadSightMask, type SightMask } from "@/lib/strat/sight";
 import { MAPS } from "@/lib/maps";
 import { clamp, pathData, simplify } from "@/lib/strat/geometry";
@@ -14,6 +15,7 @@ import {
   type BoardObject,
   type ConeWidth,
   type DrawingObject,
+  type MarkerType,
   type PenSettings,
   type VisionObject,
   type PlacedPlayer,
@@ -38,6 +40,8 @@ export type Tool =
   | "flash"
   | "molotov"
   | "he"
+  | "decoy"
+  | "marker"
   | "bomb"
   | "lineup";
 
@@ -47,6 +51,11 @@ export interface BoardProps {
   time: number | null;
   tool?: Tool;
   pen?: PenSettings;
+  /** Which marker the marker tool places. */
+  marker?: MarkerType;
+  /** "Move to…": the next click on the board moves this object there (no dragging needed). */
+  relocate?: string | null;
+  onRelocated?: () => void;
   selectedId?: string | null;
   readOnly?: boolean;
   onSelect?: (id: string | null) => void;
@@ -82,6 +91,9 @@ export function Board({
   time,
   tool = "select",
   pen = DEFAULT_PEN,
+  marker = "anchor",
+  relocate = null,
+  onRelocated,
   selectedId = null,
   readOnly = false,
   onSelect,
@@ -178,9 +190,21 @@ export function Board({
     return true;
   }
 
+  /** Moves the "Move to…" object so its anchor lands on `p`. */
+  function relocateTo(p: Pt) {
+    const o = objects.find((x) => x.id === relocate);
+    if (o) {
+      const a = anchorOf(o);
+      onCommit?.(objects.map((x) => moved(x, o, p.x - a.x, p.y - a.y)));
+      onSelect?.(o.id);
+    }
+    onRelocated?.();
+  }
+
   function onBackgroundDown(e: ReactPointerEvent) {
     if (readOnly || e.button !== 0) return;
     const p = toBoard(e);
+    if (relocate) return relocateTo(p);
     switch (tool) {
       case "select":
         onSelect?.(null);
@@ -242,6 +266,9 @@ export function Board({
       case "lineup":
         add({ id: newId(), kind: "lineup", title: "", url: "", ...p });
         return true;
+      case "marker":
+        add({ id: newId(), kind: "marker", icon: marker, ...p });
+        return true;
       case "select":
       case "route":
       case "pen":
@@ -258,6 +285,10 @@ export function Board({
 
   function onObjectDown(e: ReactPointerEvent, o: BoardObject) {
     if (readOnly || e.button !== 0) return;
+    if (relocate) {
+      e.stopPropagation();
+      return relocateTo(toBoard(e));
+    }
     if (tool === "eraser") {
       e.stopPropagation();
       gesture.current = { mode: "erase", started: false };
@@ -724,6 +755,15 @@ export function Board({
           </g>
         );
       })}
+
+      {/* role and call markers */}
+      {objects.map((m) =>
+        m.kind === "marker" ? (
+          <g key={m.id} {...handlers(m)} style={interactive}>
+            <MarkerGlyph m={m} selected={m.id === selectedId} />
+          </g>
+        ) : null,
+      )}
 
       {/* players on top; enemies are squares */}
       {players.map((p) => {

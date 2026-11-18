@@ -1,6 +1,7 @@
 "use client";
 
-import { CONE_DEGREES, CONE_LABEL, CONE_LENGTH, DRAW_SHAPE_LABEL, PEN_SWATCHES, type ConeWidth, type DrawShape, type PenSettings } from "@/lib/strat/types";
+import { MarkerIcon } from "@/components/marker-icons";
+import { CONE_DEGREES, CONE_LABEL, CONE_LENGTH, DRAW_SHAPE_LABEL, MARKER_LABEL, MARKER_TYPES, PEN_SWATCHES, type MarkerType, type ConeWidth, type DrawShape, type PenSettings } from "@/lib/strat/types";
 
 const SHAPES: DrawShape[] = ["free", "line", "arrow", "rect", "dashed", "dashed-arrow"];
 
@@ -131,10 +132,15 @@ export function ConeControls({
   cone,
   length,
   onChange,
+  angle,
+  onAngle,
 }: {
   cone: ConeWidth;
   length: number;
   onChange: (v: { cone: ConeWidth; length: number }) => void;
+  /** Direction in degrees (0 = right, 90 = down); shown when editing a placed cone. */
+  angle?: number;
+  onAngle?: (a: number) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -166,10 +172,58 @@ export function ConeControls({
           className="h-6 w-full accent-[var(--chalk)]"
         />
       </label>
+      {angle !== undefined && onAngle && (
+        <label className="block">
+          <span className="label">Direction: {compass(angle)}</span>
+          <input
+            type="range"
+            min={0}
+            max={355}
+            step={5}
+            value={((Math.round(angle / 5) * 5) % 360 + 360) % 360}
+            onChange={(e) => onAngle(Number(e.target.value))}
+            aria-valuetext={compass(angle)}
+            className="h-6 w-full accent-[var(--chalk)]"
+          />
+        </label>
+      )}
       <p className="text-sm text-muted">
         On the map: drag the diamond to aim the cone and change how far it reaches. Drag the dot to move where it starts, and
         drop it on a player to attach it, so it follows them.
       </p>
     </div>
   );
+}
+
+/** Pick which marker to place, or change a placed one. */
+export function MarkerControls({ value, onChange }: { value: MarkerType; onChange: (m: MarkerType) => void }) {
+  return (
+    <fieldset>
+      <legend className="label">Marker</legend>
+      <div className="grid grid-cols-2 gap-1">
+        {MARKER_TYPES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={value === m}
+            onClick={() => onChange(m)}
+            className={`flex min-h-11 items-center gap-2 rounded-lg border px-2.5 text-left text-sm ${
+              value === m ? "border-chalk bg-chalk text-chalk-ink" : "border-line text-muted hover:text-text"
+            }`}
+          >
+            <MarkerIcon icon={m} className="size-4 shrink-0" />
+            {MARKER_LABEL[m]}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** "North-east (315°)": map directions, with up as north. */
+function compass(angle: number): string {
+  const a = ((Math.round(angle) % 360) + 360) % 360;
+  const names = ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"];
+  const name = names[Math.round(a / 45) % 8];
+  return `${name[0].toUpperCase()}${name.slice(1)} (${a}°)`;
 }

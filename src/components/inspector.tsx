@@ -1,17 +1,19 @@
 "use client";
 
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Move, Trash2 } from "lucide-react";
 import { MAPS, areaAt } from "@/lib/maps";
 import { round1 } from "@/lib/strat/geometry";
 import { removeObject, safeUrl, youtubeId } from "@/lib/strat/model";
 import { routesOf } from "@/lib/strat/timeline";
 import type { Tool } from "@/components/board";
-import { ConeControls, PenControls } from "@/components/tool-options";
+import { ConeControls, MarkerControls, PenControls } from "@/components/tool-options";
 import {
   CONE_LABEL,
+  MARKER_LABEL,
   UTILITY_LABEL,
   type BoardObject,
   type LineupObject,
+  type MarkerType,
   type PenSettings,
   type PlacedPlayer,
   type Scene,
@@ -19,6 +21,9 @@ import {
   type Strat,
   type UtilityType,
 } from "@/lib/strat/types";
+
+/** The usual CS2 roles, one tap away. Anything else can be typed. */
+const ROLES = ["Entry", "AWP", "Support", "Lurk", "Anchor", "IGL", "Rotator"];
 
 interface Props {
   strat: Strat;
@@ -31,6 +36,13 @@ interface Props {
   tool: Tool;
   pen: PenSettings;
   onPen: (pen: PenSettings) => void;
+  marker: MarkerType;
+  onMarker: (m: MarkerType) => void;
+  /** Asks to delete the whole strategy (the editor confirms first). */
+  onDeleteStrat: () => void;
+  /** "Move to…": the id waiting for a click on the board, if any. */
+  relocating: string | null;
+  onRelocate: (id: string | null) => void;
 }
 
 function NumberField({
@@ -72,7 +84,7 @@ function NumberField({
   );
 }
 
-export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen }: Props) {
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, relocating, onRelocate }: Props) {
   const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
 
@@ -83,6 +95,16 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
         <h2 className="font-display text-xl font-semibold">Tools: pen</h2>
         <PenControls value={pen} onChange={onPen} />
         <p className="text-sm text-muted">To change a stroke you already drew, pick the select tool (V) and click it.</p>
+      </div>
+    );
+  }
+
+  if (tool === "marker") {
+    return (
+      <div className="space-y-4">
+        <h2 className="font-display text-xl font-semibold">Tools: marker</h2>
+        <MarkerControls value={marker} onChange={onMarker} />
+        <p className="text-sm text-muted">Pick one, then click the map to place it.</p>
       </div>
     );
   }
@@ -111,6 +133,17 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
             <Trash2 className="size-4" />
           </button>
         </div>
+        {!(selected.kind === "route" && selected.player) && (
+          <button
+            type="button"
+            className={`btn w-full ${relocating === selected.id ? "border-chalk" : ""}`}
+            aria-pressed={relocating === selected.id}
+            onClick={() => onRelocate(relocating === selected.id ? null : selected.id)}
+          >
+            <Move className="size-4" />
+            {relocating === selected.id ? "Now click where it should go (Esc cancels)" : "Move to…"}
+          </button>
+        )}
         {at && (
           <p className="text-sm text-muted">
             {selected.kind === "route" ? "Ends in" : "In"} {at}
@@ -129,6 +162,21 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
                 onChange={(e) => update({ ...selected, role: e.target.value })}
               />
             </label>
+            <div role="group" aria-label="Quick roles" className="flex flex-wrap gap-1">
+              {ROLES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={selected.role === r}
+                  onClick={() => update({ ...selected, role: selected.role === r ? "" : r })}
+                  className={`min-h-11 rounded-lg border px-3 text-sm ${
+                    selected.role === r ? "border-chalk bg-chalk text-chalk-ink" : "border-line text-muted hover:text-text"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
             {selected.team === strat.side && (
               <p className="text-sm text-muted">
                 {routesOf(scene, selected.id).length === 0
@@ -200,10 +248,18 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
         )}
 
         {selected.kind === "vision" && (
-          <ConeControls cone={selected.cone} length={selected.length} onChange={(v) => update({ ...selected, ...v })} />
+          <ConeControls
+            cone={selected.cone}
+            length={selected.length}
+            onChange={(v) => update({ ...selected, ...v })}
+            angle={selected.angle}
+            onAngle={(angle) => update({ ...selected, angle })}
+          />
         )}
 
         {selected.kind === "lineup" && <LineupFields key={selected.id} lineup={selected} onChange={update} />}
+
+        {selected.kind === "marker" && <MarkerControls value={selected.icon} onChange={(icon) => update({ ...selected, icon })} />}
       </div>
     );
   }
@@ -276,6 +332,12 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
             ))}
           </ul>
         )}
+      </div>
+      <div className="border-t border-line pt-4">
+        <button type="button" className="btn w-full text-danger" onClick={onDeleteStrat}>
+          <Trash2 className="size-4" />
+          Delete this strategy
+        </button>
       </div>
     </div>
   );
@@ -350,5 +412,7 @@ function describe(o: BoardObject, scene: Scene): string {
       return CONE_LABEL[o.cone];
     case "lineup":
       return "Lineup";
+    case "marker":
+      return `Marker: ${MARKER_LABEL[o.icon]}`;
   }
 }

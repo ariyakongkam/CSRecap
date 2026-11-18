@@ -43,7 +43,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 - `src/lib/strat/types.ts`: data model. A `Strat` (version 2) has `steps`; each step has `objects`:
   `player` (team T/CT, number 1-5, role; enemies are the other team, drawn as squares), `route`, `utility`
-  (smoke/flash/molotov/he with time `t`), `text`, `bomb` (one per step), `drawing` (pen: free/line/arrow/rect/
+  (smoke/flash/molotov/he/decoy with time `t`; molotov covers the CT incendiary), `marker` (role/call icon:
+  anchor, awp, entry, support, lurk, igl, hold, boost, rotate, danger, pick), `text`, `bomb` (one per step), `drawing` (pen: free/line/arrow/rect/
   dashed/dashed-arrow, hex colour, opacity, width), `lineup` (pin with title + http(s) link), `vision`
   (sight cone: wide/normal/narrow, angle, length, optional `player` it is attached to).
 - `src/lib/strat/model.ts`: create/duplicate/continue steps, and `parseStrat`, which validates **all untrusted
@@ -56,7 +57,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - `src/components/board.tsx`: the SVG board and every tool's pointer handling. `editor.tsx`: the planner page
   (history/undo, autosave, Save/Share/Clear board/Delete strategy, steps, map picker, cached prefs).
   `toolbar.tsx`, `tool-options.tsx` (pen and cone panels), `inspector.tsx`, `phase-bar.tsx`, `glyphs.tsx`,
-  `utility-icons.tsx` (own grenade icons), `map-layer.tsx`.
+  `utility-icons.tsx` (own grenade icons: cloud, starburst, frag, bottle, decoy with waves), `marker-icons.tsx`
+  (lucide icons for markers), `map-layer.tsx`.
 - `src/lib/brand.ts`: the app name (`csgg`). `src/lib/site.ts`: site URL, title, description, FAQ.
 - `src/app/page.tsx`: landing page with JSON-LD (SoftwareApplication, FAQPage). Also `robots.ts`, `sitemap.ts`,
   `opengraph-image.tsx`, `icon.svg`, `public/llms.txt`.
@@ -88,6 +90,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - **Every placement tool is one-shot** (owner's request, against misplacing): players, enemies, grenades, bomb,
   notes, lineups, routes and cones place ONE item, then the tool goes back to Select (`onToolDone`, `placeAt` in
   board.tsx). Pen and eraser stay on for several strokes.
+- Editor UX: "Delete this strategy" lives at the bottom of the Strat details panel, not in the header. Players have
+  one-tap role buttons (Entry, AWP, Support, Lurk, Anchor, IGL, Rotator). WCAG 2.5.7: every selected item has
+  "Move to…" (next click moves it) and cones have a Direction slider, so nothing needs dragging except drawing.
+  The toolbar wraps on phones instead of scrolling sideways.
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 
