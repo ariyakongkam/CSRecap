@@ -94,6 +94,7 @@ Before saying something works: type check, lint, tests and build must pass, and 
   one-tap role buttons (Entry, AWP, Support, Lurk, Anchor, IGL, Rotator). WCAG 2.5.7: every selected item has
   "Move to…" (next click moves it) and cones have a Direction slider, so nothing needs dragging except drawing.
   The toolbar wraps on phones instead of scrolling sideways.
+  Below `lg`, the marker tool shows a compact icon strip right above the map (`MarkerStrip`).
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 

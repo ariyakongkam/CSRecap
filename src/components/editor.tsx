@@ -11,6 +11,7 @@ import { Inspector } from "@/components/inspector";
 import { Logo } from "@/components/logo";
 import { MapCard } from "@/components/map-card";
 import { PhaseBar, phaseDuration } from "@/components/phase-bar";
+import { MarkerStrip } from "@/components/tool-options";
 import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
 import { MAPS, MAP_IDS } from "@/lib/maps";
 import * as H from "@/lib/strat/history";
@@ -315,6 +316,7 @@ export function Editor({ id }: { id: string }) {
             </p>
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
+          {tool === "marker" && <MarkerStrip value={marker} onChange={setMarker} />}
           <div className="board-frame relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-285px))] xl:max-w-[min(100%,calc(100dvh-275px))] overflow-hidden rounded-xl border border-line">
             <Board
               scene={scene}

@@ -153,6 +153,6 @@ export function toolHint(tool: Tool): string {
     case "decoy":
       return "Click where it lands. Then you're back on the cursor.";
     case "marker":
-      return "Pick a marker on the right, then click the map. Then you're back on the cursor.";
+      return "Pick a marker, then click the map. Then you're back on the cursor.";
   }
 }

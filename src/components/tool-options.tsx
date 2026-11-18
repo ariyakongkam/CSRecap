@@ -227,3 +227,29 @@ function compass(angle: number): string {
   const name = names[Math.round(a / 45) % 8];
   return `${name[0].toUpperCase()}${name.slice(1)} (${a}°)`;
 }
+
+/** Phones and tablets: a compact strip of marker icons right above the map, so picking and placing are one thumb apart. */
+export function MarkerStrip({ value, onChange }: { value: MarkerType; onChange: (m: MarkerType) => void }) {
+  return (
+    <div className="rounded-xl border border-line bg-panel p-1.5 lg:hidden">
+      <div role="group" aria-label="Marker to place" className="flex flex-wrap gap-1">
+        {MARKER_TYPES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={value === m}
+            aria-label={MARKER_LABEL[m]}
+            title={MARKER_LABEL[m]}
+            onClick={() => onChange(m)}
+            className={`grid size-11 place-items-center rounded-lg ${value === m ? "bg-chalk text-chalk-ink" : "text-muted hover:bg-panel-2 hover:text-text"}`}
+          >
+            <MarkerIcon icon={m} className="size-5" />
+          </button>
+        ))}
+      </div>
+      <p className="px-1 pt-1 text-sm text-muted" aria-live="polite">
+        {MARKER_LABEL[value]}: tap the map to place it.
+      </p>
+    </div>
+  );
+}
