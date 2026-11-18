@@ -41,7 +41,7 @@ export function Welcome({
             ))}
           </div>
           <div className="absolute inset-0 grid place-items-center bg-bg/55">
-            <LogoMark className="h-32 w-40 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]" />
+            <LogoMark className="logo-blink h-auto w-40 text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]" />
           </div>
         </div>
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">

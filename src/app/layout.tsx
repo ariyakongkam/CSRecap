@@ -21,7 +21,11 @@ export const viewport: Viewport = { themeColor: "#101a24", width: "device-width"
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${condensed.variable} ${stencil.variable}`}>
+    <html lang="en" className={`${body.variable} ${condensed.variable} ${stencil.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Marks that JS runs, so scroll-in animations may hide content until it is revealed. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

@@ -34,8 +34,11 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 ## Pages
 
-- `/`: landing page (SEO/GEO/AEO). Keep it **simple**: logo hero, 3 features, who it's for, AI Analyze (coming soon),
-  short FAQ.
+- `/`: landing page (SEO/GEO/AEO). Keep it **simple**: sticky header with section links, hero ("Plan the round. Win the
+  round." + a live example strat on a tilted card that flattens on scroll, cat peeking over it, pause button), 3 features,
+  who it's for, AI Analyze (coming soon), FAQ, closing call to action. Motion (`src/components/landing/*`, globals.css):
+  smooth scroll, scroll progress bar, sections rise in (`Reveal`, only when `.js` is on <html>), hover lifts on buttons
+  and cards, sliding link underlines. All of it is off with reduced motion.
 - `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
 - `/edit?id=…`: the planner. `/view#…`: read-only shared strat (whole strat compressed in the URL fragment).
@@ -78,8 +81,13 @@ Before saying something works: type check, lint, tests and build must pass, and 
   Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Nuke is the upper
   level only; Vertigo is missing (two levels).
 - Name is **radstrat** (renamed from csgg in Nov 2026; live at https://radstrat.app). `APP_NAME` in `brand.ts`
-  drives the wordmark, titles and copy; the share image `opengraph-image.png` has the name baked in. Logo is a white cat head inside a light-blue orbit with a star (`src/components/logo-mark.tsx`,
-  vector paths; the source image has a transparent background, so the white cat is easy to miss).
+  drives titles and copy; the share image `opengraph-image.png` has the logo baked in. **Logo (Nov 2026):** the owner's
+  artwork, a white cat head with big eyes + hand-drawn "RAD STRAT" lettering, traced to vector paths in
+  `src/components/logo-mark.tsx` (`LogoLockup` = cat + letters, used by `Logo` in every header; `LogoMark` = cat only,
+  used in the hero, welcome popup and `icon.svg`). Always white (`text-white`); the eyes are holes; the pupils' glints
+  are separate paths (`.logo-pupil`) so the cat blinks (`.logo-blink`, header logo on hover) and its eyes follow the
+  pointer in the hero (`--look-x/--look-y` on `.logo-eyes`). The source PNG is white on transparent, so it looks blank
+  in previews.
 - **Calls to action are light blue** (`--brand: #90b8f8`, `.btn-primary`). Selection on the board is chalk
   (`--chalk`). T is orange (`--t`), CT is blue (`--ct`).
 - Pen works like ValoPlant (type, colour swatches + any colour, opacity, thickness). Sight cones work like

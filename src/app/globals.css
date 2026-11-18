@@ -102,6 +102,96 @@ svg[role="application"]:focus-visible {
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---------- landing page motion (all of it switched off for reduced motion) ---------- */
+html {
+  scroll-padding-top: 5.5rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Sections rise into view once, as you scroll to them. Only with JS, so nothing stays hidden without it. */
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.7s ease,
+      transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .js .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  /* The cat in the hero blinks now and then. */
+  .logo-blink .logo-pupil {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: logo-blink 5.5s infinite;
+  }
+  .logo-link:hover .logo-pupil {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: logo-blink-once 0.4s;
+  }
+}
+/* The cat's eyes follow the pointer (the hero sets --look-x / --look-y). */
+.logo-eyes {
+  transform: translate(var(--look-x, 0px), var(--look-y, 0px));
+  transition: transform 0.25s ease-out;
+}
+@keyframes logo-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+@keyframes logo-blink-once {
+  0%, 100% { transform: scaleY(1); }
+  45% { transform: scaleY(0.12); }
+}
+/* A thin bar at the top that fills as you scroll, where the browser supports scroll-driven animations. */
+.scroll-progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scroll-progress {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 60;
+      height: 3px;
+      background: var(--brand);
+      transform-origin: 0 50%;
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+@keyframes scroll-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+/* FAQ answers open smoothly where the browser can animate <details>. */
+@supports (interpolate-size: allow-keywords) {
+  @media (prefers-reduced-motion: no-preference) {
+    .faq-item {
+      interpolate-size: allow-keywords;
+    }
+    .faq-item::details-content {
+      block-size: 0;
+      overflow: hidden;
+      transition:
+        block-size 0.3s ease,
+        content-visibility 0.3s allow-discrete;
+    }
+    .faq-item[open]::details-content {
+      block-size: auto;
+    }
   }
 }
 
@@ -144,11 +234,19 @@ svg[role="application"]:focus-visible {
   padding: 0.5rem 0.9rem;
   font-size: 0.9375rem;
   font-weight: 500;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.2s;
 }
 .btn:hover:not(:disabled) {
   border-color: var(--line-strong);
   background: #23344a;
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 .btn:disabled {
   opacity: 0.4;
@@ -178,6 +276,37 @@ svg[role="application"]:focus-visible {
 .btn-primary:hover:not(:disabled) {
   background: var(--brand-hover);
   border-color: var(--brand-hover);
+  box-shadow: 0 10px 28px -10px rgb(144 184 248 / 0.65);
+}
+/* An arrow inside a button nudges forward on hover. */
+.btn .btn-arrow {
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.btn:hover .btn-arrow {
+  transform: translateX(3px);
+}
+/* Text links: an underline that slides in. */
+.link-slide {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat;
+  transition:
+    background-size 0.25s ease,
+    color 0.15s;
+}
+.link-slide:hover,
+.link-slide:focus-visible {
+  background-size: 100% 1.5px;
+  color: var(--text);
+}
+/* Cards lift a little under the pointer. */
+.card-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 0.2s,
+    background 0.2s;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
 }
 .btn-lg {
   min-height: 3.25rem;
