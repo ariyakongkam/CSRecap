@@ -137,6 +137,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
   Worker settings: production branch `claude/hopeful-edison-tja98v` (the repo's default branch is an old CSRecap
   branch, which is what failed first with "Missing script: export"), build command `npm run export`, deploy command
   `npx wrangler deploy`. Checked with `wrangler deploy --dry-run` and `wrangler dev` + the browser suite.
+- "Retry build" in Cloudflare rebuilds the same commit as the failed build (it kept building the old default branch
+  after the production branch was changed). A new push to the branch starts a fresh build.
 - If a Pages project is used instead, the notes below apply.
 
 ### Pages (alternative)
