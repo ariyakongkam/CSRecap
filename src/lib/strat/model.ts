@@ -37,7 +37,7 @@ export function createStrat(map: MapId, side: Side, name = "Untitled strat"): St
     side,
     call: "",
     notes: "",
-    steps: [newStep("Step 1")],
+    steps: [newStep("Phase 1")],
     createdAt: now,
     updatedAt: now,
   };
@@ -60,6 +60,11 @@ export function removeObject(objects: BoardObject[], id: string): BoardObject[] 
 }
 
 /** Copies objects with fresh ids, keeping routes attached to the copied players. */
+/** Steps are called phases now: default names "Step 3" read as "Phase 3". */
+export function phaseName(name: string): string {
+  return name.replace(/^Step (\d+)$/, "Phase $1");
+}
+
 export function cloneObjects(objects: BoardObject[]): BoardObject[] {
   const idMap = new Map<string, string>();
   const copies = objects.map((o) => {
@@ -71,9 +76,10 @@ export function cloneObjects(objects: BoardObject[]): BoardObject[] {
 }
 
 /**
- * The next step in a sequence starts where this one ends: players stand
- * where their routes finished, with no routes yet. Grenades, notes and
- * drawings stay behind; the bomb carries over if it was planted.
+ * The next phase starts where this one ends: players stand where their routes
+ * finished, and everything else already placed (grenades, bomb, cones, notes,
+ * drawings, lineups) comes along, shown from the start of the phase. Routes
+ * stay behind, since they have been walked.
  */
 export function continueStep(step: Step, name: string): Step {
   // Where each player ends up: the last point of their latest route.
@@ -91,8 +97,9 @@ export function continueStep(step: Step, name: string): Step {
       const end = ends.get(o.id);
       return [{ ...o, ...(end ?? { x: o.x, y: o.y }) }];
     }
-    if (o.kind === "bomb") return [{ ...o, t: 0 }];
-    return [];
+    if (o.kind === "route") return [];
+    if (o.kind === "utility" || o.kind === "bomb" || o.kind === "text") return [{ ...o, t: 0 }];
+    return [{ ...o }];
   });
   return newStep(name, cloneObjects(carried));
 }
@@ -297,13 +304,13 @@ export function parseStrat(v: unknown): Strat | null {
 
   let steps: Step[];
   if (o.v === 1) {
-    steps = [{ id: newId(), name: "Step 1", objects: parseObjects(o.objects) }];
+    steps = [{ id: newId(), name: "Phase 1", objects: parseObjects(o.objects) }];
   } else {
     steps = (Array.isArray(o.steps) ? o.steps : [])
       .slice(0, MAX_STEPS)
       .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
-      .map((s, i) => ({ id: str(s.id, 40) || newId(), name: str(s.name, 40) || `Step ${i + 1}`, objects: parseObjects(s.objects) }));
-    if (steps.length === 0) steps = [newStep("Step 1")];
+      .map((s, i) => ({ id: str(s.id, 40) || newId(), name: phaseName(str(s.name, 40)) || `Phase ${i + 1}`, objects: parseObjects(s.objects) }));
+    if (steps.length === 0) steps = [newStep("Phase 1")];
   }
 
   const now = new Date().toISOString();

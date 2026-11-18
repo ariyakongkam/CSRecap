@@ -13,7 +13,7 @@ asking the owner to repeat themselves.
 ## What csgg is
 
 A free, browser-based **CS2 strat planner / tactics board** (like ValoPlant, but for Counter-Strike 2) for players,
-IGLs, teams, coaches and esports. Plan executes on a 2D map, time every grenade, play it back, share it in one link.
+IGLs, teams, coaches and esports. Plan executes on a 2D map phase by phase, play it back, share it in one link.
 No accounts and no server: strats live in the browser and travel in share links.
 
 The repo is `ariyakongkam/csrecap`; this app lives on branch `claude/hopeful-edison-tja98v`. The old CSRecap app
@@ -55,7 +55,7 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - `src/lib/maps/index.ts`: maps and callout areas on a 1000×1000 board (= the 1024px radar).
 - `src/components/board.tsx`: the SVG board and every tool's pointer handling. `editor.tsx`: the planner page
   (history/undo, autosave, Save/Share/Clear board/Delete strategy, steps, map picker, cached prefs).
-  `toolbar.tsx`, `tool-options.tsx` (pen and cone panels), `inspector.tsx`, `timeline.tsx`, `glyphs.tsx`,
+  `toolbar.tsx`, `tool-options.tsx` (pen and cone panels), `inspector.tsx`, `phase-bar.tsx`, `glyphs.tsx`,
   `utility-icons.tsx` (own grenade icons), `map-layer.tsx`.
 - `src/lib/brand.ts`: the app name (`csgg`). `src/lib/site.ts`: site URL, title, description, FAQ.
 - `src/app/page.tsx`: landing page with JSON-LD (SoftwareApplication, FAQPage). Also `robots.ts`, `sitemap.ts`,
@@ -80,6 +80,11 @@ Before saying something works: type check, lint, tests and build must pass, and 
   Cones stop at walls and crates (line of sight): `public/maps/*-sight.png` masks (white = blocked, built by
   `scripts/build-sight-masks.py` from the radars), ray casting in `src/lib/strat/sight.ts`. Max length is 380 units
   (the owner found longer unrealistic).
+- **Phases, not a timeline** (owner's request): in the UI, steps are called "phases" (code still says `steps`).
+  The time scrubber and per-object time fields were removed. "New phase" (`continueStep`) copies everything
+  except routes, with players at their route ends and times reset to 0. "Delete phase N" sits below the board.
+  Play (`phase-bar.tsx`) runs every phase from the first, animating routes, then stops. Old "Step N" names are
+  read as "Phase N" (`phaseName`). "Round" was not used: in CS a round is the whole round.
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 

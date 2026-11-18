@@ -6,6 +6,7 @@ import * as H from "./history";
 import {
   cloneObjects,
   continueStep,
+  phaseName,
   createStrat,
   duplicateStrat,
   move,
@@ -117,7 +118,7 @@ describe("editing", () => {
     expect(r.player).toBe(p.id);
   });
 
-  it("starts the next step where everyone ended, without routes or grenades", () => {
+  it("starts the next phase where everyone ended, keeping what was placed but not routes", () => {
     const step = newStep("Execute", [
       player(),
       player({ id: "e1", team: "CT", n: 1, x: 500, y: 500 }),
@@ -131,9 +132,16 @@ describe("editing", () => {
     expect(next.name).toBe("Post-plant");
     expect(players.find((p) => p.n === 1 && p.team === "T")).toMatchObject({ x: 300, y: 300 });
     expect(players.find((p) => p.team === "CT")).toMatchObject({ x: 500, y: 500 });
-    expect(next.objects.some((o) => o.kind === "route" || o.kind === "utility")).toBe(false);
+    expect(next.objects.some((o) => o.kind === "route")).toBe(false);
+    expect(next.objects.find((o) => o.kind === "utility")).toMatchObject({ type: "smoke", t: 0 });
     expect(next.objects.find((o) => o.kind === "bomb")).toMatchObject({ t: 0, x: 400 });
-    expect(next.objects.every((o) => !["p1", "e1", "b"].includes(o.id))).toBe(true); // fresh ids
+    expect(next.objects.every((o) => !["p1", "e1", "b", "s"].includes(o.id))).toBe(true); // fresh ids
+  });
+
+  it("reads old default step names as phases", () => {
+    expect(phaseName("Step 3")).toBe("Phase 3");
+    expect(phaseName("Execute")).toBe("Execute");
+    expect(phaseName("Step 3 B split")).toBe("Step 3 B split");
   });
 
   it("reorders steps", () => {

@@ -10,14 +10,14 @@ import { ConfirmDialog, Modal } from "@/components/dialog";
 import { Inspector } from "@/components/inspector";
 import { Logo } from "@/components/logo";
 import { MapCard } from "@/components/map-card";
-import { StepBar } from "@/components/step-bar";
-import { Timeline } from "@/components/timeline";
+import { PhaseBar, phaseDuration } from "@/components/phase-bar";
 import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
 import { MAPS, MAP_IDS } from "@/lib/maps";
 import * as H from "@/lib/strat/history";
-import { continueStep, move, newStep, removeObject } from "@/lib/strat/model";
+import { continueStep, move, removeObject } from "@/lib/strat/model";
 import { shareUrl } from "@/lib/strat/share";
 import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
+import { stratDuration } from "@/lib/strat/timeline";
 import { DEFAULT_PEN, isHexColor, sceneOf, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
 
 type SaveState = { status: "saved" | "saving" | "failed"; at: Date | null };
@@ -139,6 +139,18 @@ export function Editor({ id }: { id: string }) {
     setTime(null);
   }
 
+  /** Plays every phase in order, from the first. */
+  const startPlay = useCallback(() => {
+    setSelectedId(null);
+    setStepIndex(0);
+    setTime(0);
+    setPlaying(true);
+  }, []);
+  const stopPlay = useCallback(() => {
+    setPlaying(false);
+    setTime(null);
+  }, []);
+
   // Keyboard shortcuts (ignored while typing in a field or a dialog is open).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -178,10 +190,8 @@ export function Editor({ id }: { id: string }) {
       }
       if (e.key === " ") {
         e.preventDefault();
-        setPlaying((p) => {
-          if (!p) setTime((t) => (t === null ? 0 : t));
-          return !p;
-        });
+        if (playing) stopPlay();
+        else startPlay();
         return;
       }
       const next = TOOL_KEYS[e.key.toLowerCase()];
@@ -189,7 +199,7 @@ export function Editor({ id }: { id: string }) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, stepIndex, withObjects, strat, doSave]);
+  }, [selectedId, stepIndex, withObjects, strat, doSave, playing, startPlay, stopPlay]);
 
   async function share() {
     if (!strat) return;
@@ -262,7 +272,7 @@ export function Editor({ id }: { id: string }) {
             <Redo2 className="size-4" />
           </button>
         </div>
-        <button type="button" className="btn shrink-0 max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("clear")} disabled={isEmpty} title="Clear this step's board" aria-label="Clear board">
+        <button type="button" className="btn shrink-0 max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("clear")} disabled={isEmpty} title="Clear this phase's board" aria-label="Clear board">
           <Eraser className="size-4" />
           <span className="max-lg:hidden">Clear board</span>
         </button>
@@ -295,39 +305,13 @@ export function Editor({ id }: { id: string }) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-2">
-          <StepBar
-            steps={strat.steps}
-            current={current}
-            onSelect={goToStep}
-            onAdd={() => {
-              commitStratNow({ ...strat, steps: [...strat.steps, newStep(`Step ${strat.steps.length + 1}`)] });
-              goToStep(strat.steps.length);
-            }}
-            onContinue={() => {
-              const next = continueStep(step, `Step ${strat.steps.length + 1}`);
-              const steps = [...strat.steps.slice(0, current + 1), next, ...strat.steps.slice(current + 1)];
-              commitStratNow({ ...strat, steps });
-              goToStep(current + 1);
-              setNotice("New step: everyone starts where they ended.");
-            }}
-            onMove={(dir) => {
-              commitStratNow({ ...strat, steps: move(strat.steps, current, current + dir) });
-              setStepIndex(current + dir);
-            }}
-            onRename={(name) => commitStrat({ ...strat, steps: strat.steps.map((s, i) => (i === current ? { ...s, name } : s)) })}
-            onDelete={() => {
-              commitStratNow({ ...strat, steps: strat.steps.filter((_, i) => i !== current) });
-              goToStep(Math.max(0, current - 1));
-              setNotice("Step deleted. Undo with Ctrl+Z.");
-            }}
-          />
-          <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-350px))] xl:max-w-[min(100%,calc(100dvh-305px))] items-center justify-between gap-3">
+          <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-285px))] xl:max-w-[min(100%,calc(100dvh-275px))] items-center justify-between gap-3">
             <p className="text-sm text-muted" aria-live="polite">
               {toolHint(tool)}
             </p>
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
-          <div className="board-frame relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-350px))] xl:max-w-[min(100%,calc(100dvh-305px))] overflow-hidden rounded-xl border border-line">
+          <div className="board-frame relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-285px))] xl:max-w-[min(100%,calc(100dvh-275px))] overflow-hidden rounded-xl border border-line">
             <Board
               scene={scene}
               time={time}
@@ -364,7 +348,35 @@ export function Editor({ id }: { id: string }) {
               </div>
             )}
           </div>
-          <Timeline scene={scene} time={time} onTime={setTime} playing={playing} onPlaying={setPlaying} onSelectEvent={setSelectedId} />
+          <PhaseBar
+            steps={strat.steps}
+            current={current}
+            durations={strat.steps.map((st) => phaseDuration(stratDuration(sceneOf(strat, st))))}
+            time={time}
+            playing={playing}
+            onSelect={goToStep}
+            onAdvance={setStepIndex}
+            onTime={setTime}
+            onPlay={startPlay}
+            onStop={stopPlay}
+            onAdd={() => {
+              const next = continueStep(step, `Phase ${strat.steps.length + 1}`);
+              const steps = [...strat.steps.slice(0, current + 1), next, ...strat.steps.slice(current + 1)];
+              commitStratNow({ ...strat, steps });
+              goToStep(current + 1);
+              setNotice(`Phase ${current + 2} added with everything from phase ${current + 1}. Players start where their routes ended.`);
+            }}
+            onRename={(name) => commitStrat({ ...strat, steps: strat.steps.map((s, i) => (i === current ? { ...s, name } : s)) })}
+            onMove={(dir) => {
+              commitStratNow({ ...strat, steps: move(strat.steps, current, current + dir) });
+              setStepIndex(current + dir);
+            }}
+            onDelete={() => {
+              commitStratNow({ ...strat, steps: strat.steps.filter((_, i) => i !== current) });
+              goToStep(Math.max(0, current - 1));
+              setNotice(`Phase ${current + 1} deleted. Undo with Ctrl+Z.`);
+            }}
+          />
         </div>
 
         <aside className="min-w-0 rounded-xl border border-line bg-panel p-4">
@@ -406,7 +418,7 @@ export function Editor({ id }: { id: string }) {
       <ConfirmDialog
         open={confirm === "clear"}
         title={`Clear step ${current + 1}, ${step.name}?`}
-        body="This removes every player, route, grenade, drawing and note on this step's board. You can undo it with Ctrl+Z."
+        body="This removes every player, route, grenade, drawing and note on this phase's board. You can undo it with Ctrl+Z."
         confirmLabel="Clear board"
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
@@ -419,7 +431,7 @@ export function Editor({ id }: { id: string }) {
       <ConfirmDialog
         open={confirm === "delete"}
         title={`Delete ${strat.name || "this strategy"}?`}
-        body="This removes the strategy and all its steps from this browser. It can't be undone. Share links you already sent keep working."
+        body="This removes the strategy and all its phases from this browser. It can't be undone. Share links you already sent keep working."
         confirmLabel="Delete strategy"
         onCancel={() => setConfirm(null)}
         onConfirm={() => {

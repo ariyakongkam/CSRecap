@@ -13,7 +13,7 @@ export const ACTIVE_DUTY = ["Mirage", "Dust II", "Inferno", "Nuke", "Ancient", "
 export const FAQ: { q: string; a: string }[] = [
   {
     q: `What is ${APP_NAME}?`,
-    a: `${APP_NAME} is a free CS2 strat planner. You draw players, routes, smokes, flashes, molotovs and the bomb on a Counter-Strike 2 map, time each move, and share the strat with your team in one link.`,
+    a: `${APP_NAME} is a free CS2 strat planner. You draw players, routes, smokes, flashes, molotovs and the bomb on a Counter-Strike 2 map, split the round into phases, and share the strat with your team in one link.`,
   },
   {
     q: `Who is ${APP_NAME} for?`,
@@ -29,7 +29,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Do teammates need an account to see a strat?",
-    a: "No. The share link opens in any browser, on a computer or a phone. Teammates can play the strat step by step and save their own copy.",
+    a: "No. The share link opens in any browser, on a computer or a phone. Teammates can play the strat phase by phase and save their own copy.",
   },
   {
     q: "Where are my strats saved?",

@@ -46,7 +46,7 @@ export function Welcome({
         </div>
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Feature
-            title="Plan step by step"
+            title="Plan phase by phase"
             art={
               <div className="flex items-center gap-1.5" aria-hidden="true">
                 {["Default", "Execute", "Post-plant"].map((s, i) => (
@@ -57,7 +57,7 @@ export function Welcome({
               </div>
             }
           >
-            Split a strat into steps, give everything a time, and press play to watch the round unfold.
+            Split the round into phases. Each new phase starts with everything already placed. Press play to watch the round unfold.
           </Feature>
           <Feature
             title="Made for CS2"

@@ -148,6 +148,6 @@ export function toolHint(tool: Tool): string {
     case "flash":
     case "molotov":
     case "he":
-      return "Click where it lands. It pops at the timeline's current time.";
+      return "Click where it lands.";
   }
 }

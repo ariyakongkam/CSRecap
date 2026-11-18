@@ -1,12 +1,11 @@
 # csgg
 
-> csgg is a free online CS2 (Counter-Strike 2) strat planner and tactics board. Players, in-game leaders (IGLs), teams, coaches and esports organisations use it to plan executes, retakes, setups and smoke lineups on 2D radar maps, time every grenade, and share the plan with teammates in one link. No account is needed.
+> csgg is a free online CS2 (Counter-Strike 2) strat planner and tactics board. Players, in-game leaders (IGLs), teams, coaches and esports organisations use it to plan executes, retakes, setups and smoke lineups on 2D radar maps, split the round into phases, and share the plan with teammates in one link. No account is needed.
 
 ## What it does
 - Maps: all CS2 Active Duty maps (Mirage, Dust II, Inferno, Nuke upper level, Ancient, Anubis, Train, Overpass) on Valve's radar overviews, plus a blank board.
 - Objects: teammates and enemies (numbered 1-5 with roles), movement routes, smokes, flashes, molotovs, HE grenades, the C4, sight cones (wide, normal, narrow), pen drawings (freehand, lines, arrows, rectangles, dashed), text notes and lineup pins linking to a YouTube video or image.
-- Timing: every route and grenade has a time; playback runs on a 1:55 round clock.
-- Steps: a strat can have several steps (for example default, execute, post-plant); a new step can start where players ended the previous one.
+- Phases: a strat is split into phases (for example default, execute, post-plant). A new phase starts with everything already placed, with players where their routes ended. Play runs through every phase in order and animates the routes.
 - Sharing: the whole strat is stored in the share link; teammates open it without an account and can save their own copy.
 - Saving: strats are saved automatically in the browser on the device they were made on.
 

@@ -9,7 +9,6 @@ import type { Tool } from "@/components/board";
 import { ConeControls, PenControls } from "@/components/tool-options";
 import {
   CONE_LABEL,
-  UTILITY_DURATION,
   UTILITY_LABEL,
   type BoardObject,
   type LineupObject,
@@ -157,10 +156,7 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
                   ))}
               </select>
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField label="Starts at" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />
-              <NumberField label="Takes" value={selected.duration} min={0.5} onChange={(duration) => update({ ...selected, duration })} suffix="s" />
-            </div>
+            <NumberField label="Walk takes" value={selected.duration} min={0.5} onChange={(duration) => update({ ...selected, duration })} suffix="s" />
           </>
         )}
 
@@ -176,12 +172,9 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
                 ))}
               </select>
             </label>
-            <NumberField label="Pops at" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />
-            <p className="text-sm text-muted">On the board for {UTILITY_DURATION[selected.type]}s during playback.</p>
           </>
         )}
 
-        {selected.kind === "bomb" && <NumberField label="Planted at" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />}
 
         {selected.kind === "text" && (
           <>
@@ -189,7 +182,6 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
               <span className="label">Text</span>
               <input className="field" value={selected.text} maxLength={120} onChange={(e) => update({ ...selected, text: e.target.value })} />
             </label>
-            <NumberField label="Shows from" value={selected.t} onChange={(t) => update({ ...selected, t })} suffix="s" />
           </>
         )}
 
@@ -263,7 +255,7 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
         />
       </label>
       <div>
-        <span className="label">Roles in this step</span>
+        <span className="label">Roles in this phase</span>
         {roster.length === 0 ? (
           <p className="text-sm text-muted">No teammates yet. Pick the teammate tool (1) and click the map.</p>
         ) : (

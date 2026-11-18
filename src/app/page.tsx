@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Clock, Link2, Map as MapIcon } from "lucide-react";
+import { Layers, Link2, Map as MapIcon } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { LogoMark } from "@/components/logo-mark";
@@ -15,9 +15,9 @@ const FEATURES = [
     text: `Plan on ${ACTIVE_DUTY.join(", ")}. Place your five, the enemy setup and where everyone holds.`,
   },
   {
-    icon: <Clock className="size-6" />,
-    title: "Smokes, flashes and timing",
-    text: "Drop smokes, flashes, molotovs, HEs and the bomb at the second they land, add lineup links, and press play to watch the execute.",
+    icon: <Layers className="size-6" />,
+    title: "Plan it phase by phase",
+    text: "Split the round into phases like default, execute and post-plant. Drop smokes, flashes, molotovs, HEs and the bomb, add lineup links, and press play to watch it unfold.",
   },
   {
     icon: <Link2 className="size-6" />,
@@ -29,7 +29,7 @@ const FEATURES = [
 const AUDIENCE = [
   { title: "Players", text: "Learn your role and timings before you queue FACEIT or Premier." },
   { title: "Teams", text: "Keep one stratbook for executes, retakes and anti-ecos, shared by the whole roster." },
-  { title: "Coaches", text: "Explain a strat step by step, with timing, instead of a screenshot with arrows." },
+  { title: "Coaches", text: "Explain a strat phase by phase, with movement, instead of a screenshot with arrows." },
   { title: "Esports", text: "Prepare for ESEA, league and LAN matches with a playbook for every map in the pool." },
 ];
 

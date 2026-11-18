@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import { Board } from "@/components/board";
 import { CalloutToggle } from "@/components/callout-toggle";
 import { Logo } from "@/components/logo";
-import { Timeline } from "@/components/timeline";
+import { PhaseBar, phaseDuration } from "@/components/phase-bar";
 import { MAPS } from "@/lib/maps";
 import { duplicateStrat } from "@/lib/strat/model";
 import { decodeStrat } from "@/lib/strat/share";
+import { stratDuration } from "@/lib/strat/timeline";
 import { saveStrat } from "@/lib/strat/storage";
 import { UTILITY_LABEL, sceneOf, type LineupObject, type PlacedPlayer, type Strat, type UtilityObject } from "@/lib/strat/types";
 
@@ -19,7 +20,7 @@ export function Viewer() {
   const router = useRouter();
   const [strat, setStrat] = useState<Strat | null | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
-  const [time, setTime] = useState<number | null>(0);
+  const [time, setTime] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [callouts, setCallouts] = useState(false);
 
@@ -73,39 +74,35 @@ export function Viewer() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-          {strat.steps.length > 1 ? (
-            <div role="tablist" aria-label="Steps" className="flex min-w-0 gap-1 overflow-x-auto">
-              {strat.steps.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === stepIndex}
-                  onClick={() => {
-                    setStepIndex(i);
-                    setPlaying(false);
-                    setTime(0);
-                  }}
-                  className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-medium ${
-                    i === stepIndex ? "border-chalk bg-panel-2" : "border-line text-muted hover:text-text"
-                  }`}
-                >
-                  <span className={`grid size-5 place-items-center rounded font-display text-xs font-bold ${i === stepIndex ? "bg-chalk text-chalk-ink" : "bg-line"}`}>
-                    {i + 1}
-                  </span>
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <span />
-          )}
+          <span />
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
           <div className="mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-200px))] overflow-hidden rounded-xl border border-line">
             <Board scene={scene} time={time} readOnly callouts={callouts} />
           </div>
-          <Timeline scene={scene} time={time} onTime={setTime} playing={playing} onPlaying={setPlaying} editable={false} />
+          <PhaseBar
+            steps={strat.steps}
+            current={step === strat.steps[stepIndex] ? stepIndex : 0}
+            durations={strat.steps.map((st) => phaseDuration(stratDuration(sceneOf(strat, st))))}
+            time={time}
+            playing={playing}
+            onSelect={(i) => {
+              setStepIndex(i);
+              setPlaying(false);
+              setTime(null);
+            }}
+            onAdvance={setStepIndex}
+            onTime={setTime}
+            onPlay={() => {
+              setStepIndex(0);
+              setTime(0);
+              setPlaying(true);
+            }}
+            onStop={() => {
+              setPlaying(false);
+              setTime(null);
+            }}
+          />
         </div>
 
         <aside className="space-y-5 rounded-xl border border-line bg-panel p-5">

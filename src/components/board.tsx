@@ -7,11 +7,10 @@ import { loadSightMask, type SightMask } from "@/lib/strat/sight";
 import { MAPS } from "@/lib/maps";
 import { clamp, pathData, simplify } from "@/lib/strat/geometry";
 import { enemyOf, newId, nextPlayerNumber, normAngle, removeObject } from "@/lib/strat/model";
-import { formatTime, nextRouteStart, playerEndPosition, playerPositionAt, visibilityAt, walkDuration } from "@/lib/strat/timeline";
+import { nextRouteStart, playerEndPosition, playerPositionAt, visibilityAt, walkDuration } from "@/lib/strat/timeline";
 import {
   CONE_LENGTH,
   DEFAULT_PEN,
-  UTILITY_RADIUS,
   type BoardObject,
   type ConeWidth,
   type DrawingObject,
@@ -573,7 +572,6 @@ export function Board({
         const vis = visibilityAt(r, time);
         const team = r.player ? playerById.get(r.player)?.team : undefined;
         const color = team ? TEAM_COLOR[team] : "var(--ink)";
-        const mid = r.points[Math.floor(r.points.length / 2)];
         return (
           <g key={r.id} opacity={vis.opacity} {...handlers(r)} style={{ cursor: readOnly ? "default" : tool === "eraser" ? "cell" : "pointer" }}>
             <path d={pathData(r.points)} stroke="transparent" strokeWidth="18" fill="none" />
@@ -590,7 +588,6 @@ export function Board({
               strokeLinejoin="round"
               markerEnd={`url(#arrow-${team ?? "none"})`}
             />
-            {time === null && r.player && <TimeTag x={mid.x} y={mid.y} label={formatTime(r.t)} />}
           </g>
         );
       })}
@@ -607,7 +604,6 @@ export function Board({
         return (
           <g key={u.id} opacity={vis.opacity} {...handlers(u)} style={interactive}>
             <UtilityGlyph u={u} selected={u.id === selectedId} />
-            {time === null && <TimeTag x={u.x} y={u.y + UTILITY_RADIUS[u.type] + 16} label={formatTime(u.t)} />}
           </g>
         );
       })}
@@ -775,17 +771,6 @@ export function Board({
         </g>
       )}
     </svg>
-  );
-}
-
-function TimeTag({ x, y, label }: { x: number; y: number; label: string }) {
-  return (
-    <g transform={`translate(${x} ${y})`} pointerEvents="none">
-      <rect x="-21" y="-11" width="42" height="21" rx="10.5" fill="var(--wall)" opacity="0.9" />
-      <text y="5" textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--muted-ink)" style={{ fontFamily: "var(--font-condensed)" }}>
-        {label}
-      </text>
-    </g>
   );
 }
 
