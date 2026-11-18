@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Layers, Link2, Map as MapIcon } from "lucide-react";
 import Link from "next/link";
+import { AiAnalyzeCard } from "@/components/ai-analyze";
 import { Logo } from "@/components/logo";
 import { LogoMark } from "@/components/logo-mark";
 import { APP_NAME } from "@/lib/brand";
@@ -122,6 +123,10 @@ export default function Landing() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section aria-labelledby="ai" className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+          <AiAnalyzeCard headingId="ai" />
         </section>
 
         <section aria-labelledby="faq" className="border-t border-line bg-panel/60">

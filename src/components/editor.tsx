@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Sparkles, Undo2 } from "lucide-react";
+import { AiAnalyzePoints } from "@/components/ai-analyze";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -63,6 +64,7 @@ export function Editor({ id }: { id: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mapPicker, setMapPicker] = useState(false);
+  const [aiInfo, setAiInfo] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [callouts, setCallouts] = useState(false);
 
@@ -293,6 +295,17 @@ export function Editor({ id }: { id: string }) {
             <Redo2 className="size-4" />
           </button>
         </div>
+        <button
+          type="button"
+          className="btn shrink-0 max-lg:w-11 max-lg:px-0"
+          onClick={() => setAiInfo(true)}
+          aria-label="AI Analyze, coming soon"
+          title="AI Analyze: coming soon"
+        >
+          <Sparkles className="size-4 text-brand" />
+          <span className="max-lg:hidden">AI Analyze</span>
+          <span className="rounded-full border border-brand/60 px-1.5 text-[11px] leading-4 font-semibold text-brand max-lg:hidden">Soon</span>
+        </button>
         <button type="button" className="btn shrink-0 max-lg:w-11 max-lg:px-0" onClick={() => setConfirm("clear")} disabled={isEmpty} title="Clear this phase's board" aria-label="Clear board">
           <Eraser className="size-4" />
           <span className="max-lg:hidden">Clear board</span>
@@ -431,6 +444,15 @@ export function Editor({ id }: { id: string }) {
           />
         </aside>
       </div>
+
+      <Modal open={aiInfo} onClose={() => setAiInfo(false)} title="AI Analyze is coming soon">
+        <p className="mb-4">Learn from every match: turn your demos into a better plan for the next one.</p>
+        <AiAnalyzePoints />
+        <p className="mt-5 text-sm text-faint">Not available yet. Keep planning: your strats will be ready to compare when it arrives.</p>
+        <button type="button" className="btn btn-primary mt-5" onClick={() => setAiInfo(false)} data-autofocus>
+          Back to planning
+        </button>
+      </Modal>
 
       <Modal open={mapPicker} onClose={() => setMapPicker(false)} title="Change map" wide>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

@@ -34,7 +34,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 ## Pages
 
-- `/`: landing page (SEO/GEO/AEO). Keep it **simple**: logo hero, 3 features, who it's for, short FAQ.
+- `/`: landing page (SEO/GEO/AEO). Keep it **simple**: logo hero, 3 features, who it's for, AI Analyze (coming soon),
+  short FAQ.
 - `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
 - `/edit?id=…`: the planner. `/view#…`: read-only shared strat (whole strat compressed in the URL fragment).
@@ -105,6 +106,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
   Below `lg`, the marker tool shows a compact icon strip right above the map (`MarkerStrip`).
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
+- **AI Analyze is "Coming soon" only** (owner's request): upload a demo, AI says what went well/wrong, compared with
+  the strat, tips to improve the plan. Shown on the landing page, the strats page (`AiAnalyzeCard`), an "AI Analyze ·
+  Soon" button in the editor header (opens a modal) and in the FAQ and llms.txt. Always label it as not available
+  yet; keep it out of JSON-LD `featureList`. Building it needs a server, demo parsing and an AI API.
 
 ## Design rules
 

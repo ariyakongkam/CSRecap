@@ -9,6 +9,9 @@
 - Sharing: the whole strat is stored in the share link; teammates open it without an account and can save their own copy.
 - Saving: strats are saved automatically in the browser on the device they were made on.
 
+## Coming soon (not available yet)
+- AI Analyze: upload a CS2 demo and get what went well and what went wrong, compared with the planned strat, with tips to improve the plan.
+
 ## Facts
 - Price: free.
 - Platform: web browser; editing works best on a computer, viewing works on phones.

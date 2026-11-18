@@ -32,6 +32,10 @@ export const FAQ: { q: string; a: string }[] = [
     a: "No. The share link opens in any browser, on a computer or a phone. Teammates can play the strat phase by phase and save their own copy.",
   },
   {
+    q: `Can ${APP_NAME} analyze my CS2 demos?`,
+    a: "Not yet. AI Analyze is coming soon: upload a demo and get what went well and what went wrong, compared with your strat, to improve the next plan.",
+  },
+  {
     q: "Where are my strats saved?",
     a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself.",
   },

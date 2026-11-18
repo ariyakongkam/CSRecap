@@ -9,6 +9,7 @@ import { MAPS, MAP_IDS, type MapId } from "@/lib/maps";
 import { createStrat, duplicateStrat } from "@/lib/strat/model";
 import { deleteStrat, listStrats, saveStrat } from "@/lib/strat/storage";
 import { sceneOf, type Side, type Strat } from "@/lib/strat/types";
+import { AiAnalyzeCard } from "@/components/ai-analyze";
 import { MapCard } from "@/components/map-card";
 import { Welcome } from "@/components/welcome";
 import { loadPref, savePref } from "@/lib/strat/storage";
@@ -107,6 +108,10 @@ export function Library() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section aria-labelledby="ai" className="mt-6">
+        <AiAnalyzeCard headingId="ai" />
       </section>
 
       <section className="mt-12">
