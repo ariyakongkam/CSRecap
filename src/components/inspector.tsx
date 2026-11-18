@@ -415,10 +415,10 @@ function LineupFields({ lineup, onChange }: { lineup: LineupObject; onChange: (o
         <div className="space-y-2">
           {yt ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-video w-full rounded-lg border border-line object-cover" />
+            <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" referrerPolicy="no-referrer" className="aspect-video w-full rounded-lg border border-line object-cover" />
           ) : looksLikeImage ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={lineup.url} alt="" className="max-h-56 w-full rounded-lg border border-line object-contain" />
+            <img src={lineup.url} alt="" referrerPolicy="no-referrer" className="max-h-56 w-full rounded-lg border border-line object-contain" />
           ) : null}
           <a href={lineup.url} target="_blank" rel="noopener noreferrer" className="btn w-full">
             <ExternalLink className="size-4" /> Open lineup

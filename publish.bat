@@ -40,7 +40,7 @@ if errorlevel 2 (
 
 if not exist node_modules (
   echo Installing what the app needs. This takes a minute or two...
-  call npm install --no-fund --no-audit
+  call npm ci --no-fund --no-audit
 )
 
 echo Building the site...

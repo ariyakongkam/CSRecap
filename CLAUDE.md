@@ -143,6 +143,22 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
   login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
 
+## Security (checked Nov 2026, keep it this way)
+
+- `npm audit`: 0 vulnerabilities. Next 15.5.29, React 19.1.10, vitest 5 (+ @types/node 22), `overrides.postcss`.
+  Next 15.5.4 had critical advisories, incl. RCE on Windows-hosted servers: keep Next patched, since the owner runs
+  `next dev` on Windows.
+- `npm run dev` / `start` bind to `localhost` only (`--hostname localhost`): nobody on the owner's network can reach the
+  dev server. Keep the URL `http://localhost:3000` (localStorage is per origin; 127.0.0.1 would hide saved strats).
+- `.bat` files use `npm ci` (exact lockfile versions). `update.bat` only fetches from github.com/ariyakongkam/csrecap
+  over https and asks before replacing files. `publish.bat` only downloads Caddy from caddyserver.com, after asking.
+- `public/_headers` (and the Caddyfile): CSP `script-src 'self' 'unsafe-inline'` (Next's static export needs inline
+  scripts), `img-src https:` for lineup pictures, `connect-src 'self'`, `frame-src 'none'`, `frame-ancestors 'none'`,
+  HSTS, Permissions-Policy, COOP. Test with `wrangler dev` (it applies `_headers`) after adding anything external.
+- No secrets in the repo or its history (old CSRecap code only named `FACEIT_API_KEY` with no value).
+- Untrusted input: share/invite links and localStorage go through `parseStrat`; links must be http(s) (`safeUrl`);
+  JSON-LD escapes `<`; linked images use `referrerPolicy="no-referrer"`.
+
 ## Hosting on Cloudflare (the owner's choice; domain bought at Cloudflare)
 
 - The owner's project turned out to be a **Worker** (Workers Builds), not Pages. `wrangler.jsonc` serves `out/` as

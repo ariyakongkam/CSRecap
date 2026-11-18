@@ -14,7 +14,7 @@ if errorlevel 1 (
 
 if not exist node_modules (
   echo First run: installing what the app needs. This takes a minute or two...
-  call npm install
+  call npm ci --no-fund --no-audit
   if errorlevel 1 (
     echo Installing failed. Check your internet connection and try again.
     pause

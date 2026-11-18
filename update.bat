@@ -58,7 +58,7 @@ if errorlevel 1 (
   exit /b 1
 )
 echo Installerar det som behövs...
-call npm install --no-fund --no-audit
+call npm ci --no-fund --no-audit
 echo.
 echo Klart! Om start.bat redan körs uppdateras sidan i webbläsaren av sig själv. Annars, kör start.bat.
 pause

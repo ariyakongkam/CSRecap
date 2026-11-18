@@ -1,6 +1,5 @@
 import { APP_NAME } from "@/lib/brand";
 
-/** Public URL of the site. Set NEXT_PUBLIC_SITE_URL (e.g. https://csrecap.com) when it goes live. */
 /** The live address. NEXT_PUBLIC_SITE_URL overrides it (e.g. for a test address); `npm run dev` uses localhost. */
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://radstrat.app")
