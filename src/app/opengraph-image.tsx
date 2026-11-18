@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { LOGO_CAT, LOGO_PATHS } from "@/components/logo-mark";
 import { APP_NAME } from "@/lib/brand";
 
+/** Built once at build time (also needed for `npm run export`). */
+export const dynamic = "force-static";
 export const alt = `${APP_NAME}: free CS2 strat planner and tactics board`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

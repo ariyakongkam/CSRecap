@@ -129,6 +129,18 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
   login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
 
+## Self-hosting (the owner hosts it on their own machine with their own domain)
+
+- `npm run export` builds the whole site as static files in `out/` (`next.config.ts` switches to `output: "export"`
+  when npm runs the `export` script). `opengraph-image`, `robots` and `sitemap` are `force-static` for this.
+- `publish.bat` (Windows): asks the domain once (saved in `hosting/domain.txt`), builds with
+  `NEXT_PUBLIC_SITE_URL=https://<domain>`, copies `out/` to `hosting/site/`, offers to download Caddy to
+  `hosting/caddy.exe`. `serve.bat` runs Caddy with `hosting/Caddyfile` (automatic HTTPS, `/app` → `app.html`,
+  404 page, security headers). The owner needs: DNS A record to their public IP, router ports 80 and 443 forwarded
+  to the machine, and serve.bat left running. Tested the export with a stand-in static server and the browser suite;
+  Caddy itself has not been run here.
+- After `update.bat`, run `publish.bat` again to put the new version online.
+
 ## Updating the owner's folder
 
 `update.bat` fetches branch `claude/hopeful-edison-tja98v` from GitHub, lists new commits, asks J/N and then

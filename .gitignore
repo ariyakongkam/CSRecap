@@ -5,3 +5,8 @@ next-env.d.ts
 *.tsbuildinfo
 .env*.local
 .DS_Store
+
+# self-hosting (publish.bat / serve.bat)
+hosting/site/
+hosting/caddy.exe
+hosting/domain.txt
