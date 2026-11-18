@@ -182,7 +182,7 @@ export function Timeline({ scene, time, onTime, playing, onPlaying, onSelectEven
           }}
           aria-label="Round time"
           aria-valuetext={`${shown.toFixed(1)} seconds into the round`}
-          className="w-full accent-[var(--chalk)]"
+          className="h-6 w-full accent-[var(--chalk)]"
         />
       </div>
 

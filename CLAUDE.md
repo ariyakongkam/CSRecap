@@ -91,6 +91,11 @@ Before saying something works: type check, lint, tests and build must pass, and 
   override Tailwind utilities such as `hidden` and `min-h-*`.
 - Never name a Tailwind colour `t` (it turns `border-t` orange). Team colours are `team-t` / `team-ct`.
 - Check pages at 375px, 768px and 1440px: no sideways scrolling.
+- WCAG 2.2 AA matters to the owner. Every page has one `<main>`; axe-core reports zero violations (Nov 2026).
+  The board is keyboard usable (`role="application"`, `onKeyDown` in board.tsx): arrows move a cursor or the
+  selected item, Enter places with the current tool or selects, Delete removes, Escape deselects. Keep that working.
+- Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
+  login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
 
 ## Updating the owner's folder
 

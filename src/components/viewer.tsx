@@ -55,7 +55,7 @@ export function Viewer() {
   const lineups = step.objects.filter((o): o is LineupObject => o.kind === "lineup" && !!o.url);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+    <main className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
       <header className="flex items-center justify-between gap-3 py-4">
         <Logo />
         <button
@@ -173,6 +173,6 @@ export function Viewer() {
           )}
         </aside>
       </div>
-    </div>
+    </main>
   );
 }

@@ -87,6 +87,15 @@ body {
   outline-offset: 2px;
 }
 
+/* The board sits in a clipped frame, so the frame shows its focus instead. */
+svg[role="application"]:focus-visible {
+  outline: none;
+}
+.board-frame:has(> svg:focus-visible) {
+  outline: 2px solid var(--chalk);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

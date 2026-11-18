@@ -29,13 +29,12 @@ export function StepBar({
   const step = steps[current];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div role="tablist" aria-label="Steps" className="flex min-w-0 basis-full gap-1 overflow-x-auto md:flex-1 md:basis-0">
+      <div role="group" aria-label="Steps" className="flex min-w-0 basis-full gap-1 overflow-x-auto md:flex-1 md:basis-0">
         {steps.map((s, i) => (
           <button
             key={s.id}
             type="button"
-            role="tab"
-            aria-selected={i === current}
+            aria-current={i === current ? "step" : undefined}
             onClick={() => onSelect(i)}
             className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors ${
               i === current ? "border-chalk bg-panel-2 text-text" : "border-line text-muted hover:border-line-strong hover:text-text"

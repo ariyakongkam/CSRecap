@@ -41,7 +41,7 @@ export function Library() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+    <main className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
       <header className="flex items-center justify-between py-5">
         <Logo />
         <div className="flex items-center gap-1">
@@ -171,6 +171,6 @@ export function Library() {
       <footer className="mt-16 border-t border-line pt-6 text-sm text-faint">
         Map radar overviews and screenshots are © Valve Corporation. csgg is not affiliated with or endorsed by Valve.
       </footer>
-    </div>
+    </main>
   );
 }

@@ -100,6 +100,8 @@ export function Board({
   const [penDraft, setPenDraft] = useState<DrawingObject | null>(null);
   const [coneDraft, setConeDraft] = useState<{ origin: Pt; end: Pt; cone: ConeWidth } | null>(null);
   const [activeTip, setActiveTip] = useState<string | null>(null);
+  /** Keyboard cursor: where Enter places or selects. Shown while the board has keyboard focus. */
+  const [kbd, setKbd] = useState<Pt | null>(null);
   const map = MAPS[scene.map];
   const objects = scene.objects;
   const [sight, setSight] = useState<{ url: string; mask: SightMask | null } | null>(null);
@@ -183,12 +185,6 @@ export function Board({
       case "select":
         onSelect?.(null);
         return;
-      case "mate":
-        placePlayer(scene.side, p);
-        return;
-      case "enemy":
-        placePlayer(enemyOf(scene.side), p);
-        return;
       case "route":
         capture(e);
         gesture.current = { mode: "draw", points: [p], player: null, team: null };
@@ -211,6 +207,20 @@ export function Board({
         setConeDraft({ origin: p, end: { x: p.x, y: p.y - CONE_LENGTH.default }, cone });
         return;
       }
+      default:
+        placeAt(p);
+    }
+  }
+
+  /** Tools that drop something on one spot: players, grenades, notes, bomb, lineups. */
+  function placeAt(p: Pt) {
+    switch (tool) {
+      case "mate":
+        placePlayer(scene.side, p);
+        return;
+      case "enemy":
+        placePlayer(enemyOf(scene.side), p);
+        return;
       case "text":
         add({ id: newId(), kind: "text", text: "Note", t: time ?? 0, ...p });
         return;
@@ -226,6 +236,14 @@ export function Board({
       }
       case "lineup":
         add({ id: newId(), kind: "lineup", title: "", url: "", ...p });
+        return;
+      case "select":
+      case "route":
+      case "pen":
+      case "eraser":
+      case "cone-wide":
+      case "cone-normal":
+      case "cone-narrow":
         return;
       default:
         add({ id: newId(), kind: "utility", type: tool, t: time ?? 0, ...p });
@@ -428,6 +446,82 @@ export function Board({
     gesture.current = { mode: "cone-origin", id: v.id, started: false, tip: tipOf(v) };
   }
 
+  /** A spot to pick an object by: its position, a cone's origin, or the middle of a line. */
+  function anchorOf(o: BoardObject): Pt {
+    if (o.kind === "vision") return coneOrigin(o);
+    if (o.kind === "route" || o.kind === "drawing") return o.points[Math.floor(o.points.length / 2)];
+    return { x: o.x, y: o.y };
+  }
+
+  function nearestTo(p: Pt, max = 40): BoardObject | null {
+    let best: BoardObject | null = null;
+    let bestD = max;
+    for (const o of objects) {
+      if (o.kind === "route" && o.player) continue; // picked through its player
+      const a = anchorOf(o);
+      const d = Math.hypot(a.x - p.x, a.y - p.y) - (o.kind === "player" ? 6 : 0);
+      if (d < bestD) {
+        best = o;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Keyboard use of the board: arrows move the cursor (or the selected item in Select),
+   * Enter places with the current tool or selects what is under the cursor.
+   */
+  function onKeyDown(e: React.KeyboardEvent<SVGSVGElement>) {
+    if (readOnly) return;
+    const step = e.shiftKey ? 50 : 10;
+    const dirs: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const here = kbd ?? { x: 500, y: 500 };
+    const dir = dirs[e.key];
+    if (dir) {
+      e.preventDefault();
+      const sel = tool === "select" && selectedId ? objects.find((o) => o.id === selectedId) : undefined;
+      if (sel && !(sel.kind === "route" && sel.player)) {
+        onCommit?.(objects.map((o) => moved(o, sel, dir[0], dir[1])));
+        const a = anchorOf(sel);
+        setKbd({ x: clamp(a.x + dir[0], 0, 1000), y: clamp(a.y + dir[1], 0, 1000) });
+        return;
+      }
+      setKbd({ x: clamp(here.x + dir[0], 0, 1000), y: clamp(here.y + dir[1], 0, 1000) });
+      return;
+    }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const under = nearestTo(here);
+    switch (tool) {
+      case "select":
+        onSelect?.(under?.id ?? null);
+        if (!under) onNotice?.("Nothing under the cursor. Move it with the arrow keys.");
+        return;
+      case "eraser":
+        if (under) {
+          onCommit?.(removeObject(objects, under.id));
+          if (under.id === selectedId) onSelect?.(null);
+        }
+        return;
+      case "route":
+      case "pen":
+        onNotice?.("Routes and drawings need a mouse, pen or touch.");
+        return;
+      case "cone-wide":
+      case "cone-normal":
+      case "cone-narrow": {
+        const owner = playerAt(here);
+        const origin = owner ? { x: owner.x, y: owner.y } : here;
+        add({ id: newId(), kind: "vision", player: owner?.id ?? null, ...origin, angle: -90, length: CONE_LENGTH.default, cone: tool.slice(5) as ConeWidth });
+        onToolDone?.();
+        return;
+      }
+      default:
+        placeAt(here);
+    }
+  }
+
   const handlers = (o: BoardObject) => ({
     onPointerDown: (e: ReactPointerEvent) => onObjectDown(e, o),
     onPointerEnter: (e: ReactPointerEvent) => onObjectEnter(e, o),
@@ -443,8 +537,15 @@ export function Board({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
-      role="img"
+      role={readOnly ? "img" : "application"}
       aria-label={`${map.name} board`}
+      aria-describedby={readOnly ? undefined : "board-keys"}
+      tabIndex={readOnly ? undefined : 0}
+      onKeyDown={onKeyDown}
+      onFocus={(e) => {
+        if (e.currentTarget.matches(":focus-visible")) setKbd((k) => k ?? { x: 500, y: 500 });
+      }}
+      onBlur={() => setKbd(null)}
     >
       <defs>
         {(["T", "CT", "none"] as const).map((k) => (
@@ -666,6 +767,13 @@ export function Board({
           </g>
         );
       })}
+      {kbd && !readOnly && (
+        <g pointerEvents="none" aria-hidden="true">
+          <circle cx={kbd.x} cy={kbd.y} r="14" fill="none" stroke="var(--void)" strokeWidth="5" />
+          <circle cx={kbd.x} cy={kbd.y} r="14" fill="none" stroke="var(--brand)" strokeWidth="2.5" />
+          <path d={`M${kbd.x - 22} ${kbd.y}h12M${kbd.x + 10} ${kbd.y}h12M${kbd.x} ${kbd.y - 22}v12M${kbd.x} ${kbd.y + 10}v12`} stroke="var(--brand)" strokeWidth="2.5" />
+        </g>
+      )}
     </svg>
   );
 }

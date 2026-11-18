@@ -32,6 +32,10 @@ export const FAQ: { q: string; a: string }[] = [
     a: "No. The share link opens in any browser, on a computer or a phone. Teammates can play the strat step by step and save their own copy.",
   },
   {
+    q: "Where are my strats saved?",
+    a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself.",
+  },
+  {
     q: `Is ${APP_NAME} affiliated with Valve?`,
     a: `No. ${APP_NAME} is an independent tool. The map radar images are © Valve Corporation.`,
   },

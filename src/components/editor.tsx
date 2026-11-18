@@ -227,7 +227,7 @@ export function Editor({ id }: { id: string }) {
         : "Saved in this browser";
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <main className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b border-line px-3 py-2 sm:gap-3 sm:px-4">
         <Link href="/app" className="btn btn-icon shrink-0" aria-label="All strategies">
           <ArrowLeft className="size-4" />
@@ -241,8 +241,9 @@ export function Editor({ id }: { id: string }) {
             <button
               type="button"
               onClick={() => setMapPicker(true)}
-              className="rounded border border-line px-1.5 py-0.5 text-muted hover:border-line-strong hover:text-text"
+              className="inline-flex min-h-6 items-center rounded border border-line px-2 text-muted hover:border-line-strong hover:text-text"
               title="Change map"
+              aria-label={`Map: ${MAPS[strat.map].name}. Change map`}
             >
               {MAPS[strat.map].name}
             </button>
@@ -320,13 +321,13 @@ export function Editor({ id }: { id: string }) {
               setNotice("Step deleted. Undo with Ctrl+Z.");
             }}
           />
-          <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] items-center justify-between gap-3">
+          <div className="mx-auto flex w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-350px))] xl:max-w-[min(100%,calc(100dvh-305px))] items-center justify-between gap-3">
             <p className="text-sm text-muted" aria-live="polite">
               {toolHint(tool)}
             </p>
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
-          <div className="relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] overflow-hidden rounded-xl border border-line">
+          <div className="board-frame relative mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-250px))] lg:max-w-[min(100%,calc(100dvh-350px))] xl:max-w-[min(100%,calc(100dvh-305px))] overflow-hidden rounded-xl border border-line">
             <Board
               scene={scene}
               time={time}
@@ -341,6 +342,11 @@ export function Editor({ id }: { id: string }) {
               callouts={callouts}
               onToolDone={() => setTool("select")}
             />
+            <p id="board-keys" className="sr-only">
+              Arrow keys move the cursor, or the selected item when Select is on. Hold Shift to move further. Enter places
+              with the current tool, or selects what is under the cursor. Delete removes the selected item and Escape deselects it. The letters on
+              the toolbar buttons switch tools.
+            </p>
             {isEmpty && tool === "select" && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
                 <div className="pointer-events-auto max-w-xs rounded-xl border border-line bg-bg/95 p-5 text-center shadow-2xl">
@@ -422,6 +428,6 @@ export function Editor({ id }: { id: string }) {
           router.push("/app");
         }}
       />
-    </div>
+    </main>
   );
 }

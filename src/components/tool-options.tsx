@@ -107,7 +107,7 @@ export function PenControls({
           step={0.05}
           value={value.opacity}
           onChange={(e) => onChange({ ...value, opacity: Number(e.target.value) })}
-          className="w-full accent-[var(--chalk)]"
+          className="h-6 w-full accent-[var(--chalk)]"
         />
       </label>
       <label className="block">
@@ -119,7 +119,7 @@ export function PenControls({
           step={0.5}
           value={value.width}
           onChange={(e) => onChange({ ...value, width: Number(e.target.value) })}
-          className="w-full accent-[var(--chalk)]"
+          className="h-6 w-full accent-[var(--chalk)]"
         />
       </label>
     </div>
@@ -163,7 +163,7 @@ export function ConeControls({
           step={5}
           value={length}
           onChange={(e) => onChange({ cone, length: Number(e.target.value) })}
-          className="w-full accent-[var(--chalk)]"
+          className="h-6 w-full accent-[var(--chalk)]"
         />
       </label>
       <p className="text-sm text-muted">
