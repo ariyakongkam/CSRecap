@@ -92,6 +92,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   player throws it (dashed throw line, "Thrown by" in the inspector, listed in the share view). "New phase" opens a
   choice: "Keep everything" or "Players and bomb only" (`continueStep(step, name, carry)`). "Place all five at spawn"
   (`teamAtSpawn`) on the empty board and in the roster. Role labels under players ignore clicks.
+  Each phase has an optional plan (`Step.note`, "Plan for …" in the strat panel, shown under the phase buttons in the
+  share view). The bomb is drawn last so it never hides under players. The welcome popup's button goes to the map
+  picker ("Pick a map and start") instead of creating a Mirage strat. The share view shows the strat name above the map.
 - **Every placement tool is one-shot** (owner's request, against misplacing): players, enemies, grenades, bomb,
   notes, lineups, routes and cones place ONE item, then the tool goes back to Select (`onToolDone`, `placeAt` in
   board.tsx). Pen and eraser stay on for several strokes.

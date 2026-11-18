@@ -758,16 +758,6 @@ export function Board({
         />
       )}
 
-      {/* bomb */}
-      {objects.map((b) => {
-        if (b.kind !== "bomb" || !visibilityAt(b, time).show) return null;
-        return (
-          <g key={b.id} {...handlers(b)} style={interactive}>
-            <BombGlyph b={b} selected={b.id === selectedId} />
-          </g>
-        );
-      })}
-
       {/* lineup pins */}
       {objects.map((l) => {
         if (l.kind !== "lineup") return null;
@@ -864,6 +854,16 @@ export function Board({
           </g>
         );
       })}
+      {/* bomb last, so it never hides under players on a crowded site */}
+      {objects.map((b) => {
+        if (b.kind !== "bomb" || !visibilityAt(b, time).show) return null;
+        return (
+          <g key={b.id} {...handlers(b)} style={interactive}>
+            <BombGlyph b={b} selected={b.id === selectedId} />
+          </g>
+        );
+      })}
+
       {kbd && !readOnly && (
         <g pointerEvents="none" aria-hidden="true">
           <circle cx={kbd.x} cy={kbd.y} r="14" fill="none" stroke="var(--void)" strokeWidth="5" />

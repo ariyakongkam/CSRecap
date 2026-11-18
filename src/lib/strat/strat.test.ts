@@ -392,3 +392,15 @@ describe("coach features", () => {
     expect(s.steps[0].objects[1]).toMatchObject({ from: "p1" });
   });
 });
+
+describe("phase notes", () => {
+  it("keeps a phase's plan, trimmed to 500 characters, and drops a non-string", () => {
+    const s = parseStrat({
+      v: 2, id: "s", name: "S", map: "mirage", side: "T", call: "", notes: "",
+      steps: [{ id: "a", name: "A", objects: [], note: "Go on the flash" }, { id: "b", name: "B", objects: [], note: 42 }, { id: "c", name: "C", objects: [], note: "x".repeat(900) }],
+    })!;
+    expect(s.steps[0].note).toBe("Go on the flash");
+    expect(s.steps[1].note).toBeUndefined();
+    expect(s.steps[2].note).toHaveLength(500);
+  });
+});

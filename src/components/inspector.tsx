@@ -42,6 +42,8 @@ interface Props {
   onDeleteStrat: () => void;
   /** Puts the missing teammates in spawn. */
   onPlaceTeam: () => void;
+  /** The phase being edited (index into strat.steps). */
+  stepIndex: number;
   /** "Move to…": the id waiting for a click on the board, if any. */
   relocating: string | null;
   onRelocate: (id: string | null) => void;
@@ -86,7 +88,7 @@ function NumberField({
   );
 }
 
-export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, onPlaceTeam, relocating, onRelocate }: Props) {
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, onPlaceTeam, stepIndex, relocating, onRelocate }: Props) {
   const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
 
@@ -318,8 +320,20 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
           onChange={(e) => onStrat({ ...strat, call: e.target.value })}
         />
       </label>
+      {strat.steps[stepIndex] && (
+        <label className="block">
+          <span className="label">Plan for {strat.steps[stepIndex].name || `phase ${stepIndex + 1}`}</span>
+          <textarea
+            className="field min-h-20"
+            value={strat.steps[stepIndex].note ?? ""}
+            maxLength={500}
+            placeholder="e.g. go on the flash, 1 and 2 trade Palace, AWP holds Jungle"
+            onChange={(e) => onStrat({ ...strat, steps: strat.steps.map((s, i) => (i === stepIndex ? { ...s, note: e.target.value } : s)) })}
+          />
+        </label>
+      )}
       <label className="block">
-        <span className="label">Notes</span>
+        <span className="label">Notes for the whole strat</span>
         <textarea
           className="field min-h-36"
           value={strat.notes}

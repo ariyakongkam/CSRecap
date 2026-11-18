@@ -73,8 +73,14 @@ export function Viewer() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-          <span />
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="font-display text-3xl leading-tight font-semibold break-words">{strat.name}</h1>
+              <p className="mt-1 flex items-center gap-2 text-sm text-muted">
+                <span className={`inline-block size-2.5 rounded-full ${strat.side === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
+                {MAPS[strat.map].name}, {strat.side} side
+              </p>
+            </div>
             <CalloutToggle on={callouts} onChange={setCallouts} />
           </div>
           <div className="mx-auto aspect-square w-full max-w-[min(100%,calc(100dvh-200px))] overflow-hidden rounded-xl border border-line">
@@ -103,16 +109,16 @@ export function Viewer() {
               setTime(null);
             }}
           />
+          {step.note && (
+            <section aria-label={`Plan for ${step.name}`} className="rounded-xl border border-line bg-panel p-4">
+              <h2 className="label">Plan for {step.name}</h2>
+              <p className="text-sm whitespace-pre-line">{step.note}</p>
+            </section>
+          )}
         </div>
 
+        {(strat.call || strat.notes || roster.length > 0 || utility.length > 0 || lineups.length > 0) && (
         <aside className="space-y-5 rounded-xl border border-line bg-panel p-5">
-          <div>
-            <h1 className="font-display text-3xl font-semibold">{strat.name}</h1>
-            <p className="mt-1 flex items-center gap-2 text-sm text-muted">
-              <span className={`inline-block size-2.5 rounded-full ${strat.side === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
-              {MAPS[strat.map].name}, {strat.side} side
-            </p>
-          </div>
           {strat.call && (
             <div>
               <h2 className="label">When to call it</h2>
@@ -177,6 +183,7 @@ export function Viewer() {
             </div>
           )}
         </aside>
+        )}
       </div>
     </main>
   );

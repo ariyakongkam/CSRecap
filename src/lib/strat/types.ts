@@ -127,6 +127,8 @@ export interface Step {
   id: string;
   name: string;
   objects: BoardObject[];
+  /** What happens in this phase, in words: the call, who trades whom. */
+  note?: string;
 }
 
 /** What the board and timeline need: one step's objects on a map. */

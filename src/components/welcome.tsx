@@ -71,7 +71,7 @@ export function Welcome({
               </div>
             }
           >
-            Smokes, flashes, molotovs, HEs, the bomb, sight cones and lineup links on every Active Duty map.
+            Smokes, flashes, molotovs, HEs, decoys, the bomb, sight cones, role markers and lineup links on every Active Duty map.
           </Feature>
           <Feature
             title="Share in one link"
@@ -101,7 +101,7 @@ export function Welcome({
       </div>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
         <button type="button" className="btn btn-primary" onClick={onBlank} data-autofocus>
-          Start my first strat
+          Pick a map and start
         </button>
         <button type="button" className="btn border-transparent bg-transparent text-muted" onClick={onClose}>
           Skip

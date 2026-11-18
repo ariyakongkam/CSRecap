@@ -328,7 +328,10 @@ export function parseStrat(v: unknown): Strat | null {
     steps = (Array.isArray(o.steps) ? o.steps : [])
       .slice(0, MAX_STEPS)
       .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
-      .map((s, i) => ({ id: str(s.id, 40) || newId(), name: phaseName(str(s.name, 40)) || `Phase ${i + 1}`, objects: parseObjects(s.objects) }));
+      .map((s, i) => ({ id: str(s.id, 40) || newId(), name: phaseName(str(s.name, 40)) || `Phase ${i + 1}`,
+        objects: parseObjects(s.objects),
+        ...(str(s.note, 500) ? { note: str(s.note, 500) } : {}),
+      }));
     if (steps.length === 0) steps = [newStep("Phase 1")];
   }
 

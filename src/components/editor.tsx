@@ -425,6 +425,7 @@ export function Editor({ id }: { id: string }) {
             onMarker={setMarker}
             onDeleteStrat={() => setConfirm("delete")}
             onPlaceTeam={placeTeam}
+            stepIndex={current}
             relocating={relocate}
             onRelocate={setRelocate}
           />

@@ -58,7 +58,11 @@ export function Library() {
         onClose={closeWelcome}
         onBlank={() => {
           closeWelcome();
-          open(createStrat("mirage", "T", "Mirage T strat"));
+          // Let the coach pick the map and side first: go to the picker and put focus on the selected map.
+          requestAnimationFrame(() => {
+            document.getElementById("new")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            document.querySelector<HTMLButtonElement>("#new [aria-pressed=true]")?.focus({ preventScroll: true });
+          });
         }}
       />
 
