@@ -40,6 +40,8 @@ interface Props {
   onMarker: (m: MarkerType) => void;
   /** Asks to delete the whole strategy (the editor confirms first). */
   onDeleteStrat: () => void;
+  /** Puts the missing teammates in spawn. */
+  onPlaceTeam: () => void;
   /** "Move to…": the id waiting for a click on the board, if any. */
   relocating: string | null;
   onRelocate: (id: string | null) => void;
@@ -84,7 +86,7 @@ function NumberField({
   );
 }
 
-export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, relocating, onRelocate }: Props) {
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, onPlaceTeam, relocating, onRelocate }: Props) {
   const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
 
@@ -220,6 +222,22 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
                 ))}
               </select>
             </label>
+            <label className="block">
+              <span className="label">Thrown by</span>
+              <select className="field" value={selected.from ?? ""} onChange={(e) => update({ ...selected, from: e.target.value || null })}>
+                <option value="">Nobody in particular</option>
+                {scene.objects
+                  .filter((o): o is PlacedPlayer => o.kind === "player")
+                  .sort((a, b) => a.team.localeCompare(b.team) || a.n - b.n)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.team === strat.side ? "Teammate" : "Enemy"} {p.n}
+                      {p.role ? `, ${p.role}` : ""}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <p className="text-sm text-muted">Tip: with a grenade tool, drag from a player to where it lands to set the thrower straight away.</p>
           </>
         )}
 
@@ -313,7 +331,7 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
       <div>
         <span className="label">Roles in this phase</span>
         {roster.length === 0 ? (
-          <p className="text-sm text-muted">No teammates yet. Pick the teammate tool (1) and click the map.</p>
+          <p className="text-sm text-muted">No teammates yet. Pick the teammate tool (1) and click the map, or place them all at once.</p>
         ) : (
           <ul className="space-y-1">
             {roster.map((p) => (
@@ -331,6 +349,11 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
               </li>
             ))}
           </ul>
+        )}
+        {roster.length < 5 && (
+          <button type="button" className="btn mt-2 w-full" onClick={onPlaceTeam}>
+            {roster.length === 0 ? "Place all five at spawn" : `Add the other ${5 - roster.length} at spawn`}
+          </button>
         )}
       </div>
       <div className="border-t border-line pt-4">

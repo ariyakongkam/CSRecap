@@ -136,15 +136,23 @@ export function Viewer() {
           )}
           {utility.length > 0 && (
             <div>
-              <h2 className="label">Utility order</h2>
+              <h2 className="label">Utility in {step.name}</h2>
               <ol className="space-y-1 text-sm">
-                {utility.map((u) => (
-                  <li key={u.id}>
-                    <button type="button" className="min-h-9 hover:text-chalk" onClick={() => setTime(u.t)}>
-                      <span className="text-muted tabular-nums">{u.t}s</span> {UTILITY_LABEL[u.type]}
-                    </button>
-                  </li>
-                ))}
+                {utility.map((u) => {
+                  const by = u.from ? step.objects.find((o): o is PlacedPlayer => o.kind === "player" && o.id === u.from) : undefined;
+                  return (
+                    <li key={u.id}>
+                      {UTILITY_LABEL[u.type]}
+                      {by && (
+                        <span className="text-muted">
+                          {" "}
+                          thrown by {by.n}
+                          {by.role ? ` (${by.role})` : ""}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}

@@ -43,7 +43,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 - `src/lib/strat/types.ts`: data model. A `Strat` (version 2) has `steps`; each step has `objects`:
   `player` (team T/CT, number 1-5, role; enemies are the other team, drawn as squares), `route`, `utility`
-  (smoke/flash/molotov/he/decoy with time `t`; molotov covers the CT incendiary), `marker` (role/call icon:
+  (smoke/flash/molotov/he/decoy with time `t` and optional thrower `from` = player id; molotov covers the CT
+  incendiary), `marker` (role/call icon:
   anchor, awp, entry, support, lurk, igl, hold, boost, rotate, danger, pick), `text`, `bomb` (one per step), `drawing` (pen: free/line/arrow/rect/
   dashed/dashed-arrow, hex colour, opacity, width), `lineup` (pin with title + http(s) link), `vision`
   (sight cone: wide/normal/narrow, angle, length, optional `player` it is attached to).
@@ -87,6 +88,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
   except routes, with players at their route ends and times reset to 0. "Delete phase N" sits below the board.
   Play (`phase-bar.tsx`) runs every phase from the first, animating routes, then stops. Old "Step N" names are
   read as "Phase N" (`phaseName`). "Round" was not used: in CS a round is the whole round.
+- **Coach features** (from a coach walkthrough): drag from a player with a grenade tool to where it lands = that
+  player throws it (dashed throw line, "Thrown by" in the inspector, listed in the share view). "New phase" opens a
+  choice: "Keep everything" or "Players and bomb only" (`continueStep(step, name, carry)`). "Place all five at spawn"
+  (`teamAtSpawn`) on the empty board and in the roster. Role labels under players ignore clicks.
 - **Every placement tool is one-shot** (owner's request, against misplacing): players, enemies, grenades, bomb,
   notes, lineups, routes and cones place ONE item, then the tool goes back to Select (`onToolDone`, `placeAt` in
   board.tsx). Pen and eraser stay on for several strokes.

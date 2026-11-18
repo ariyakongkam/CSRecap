@@ -46,6 +46,8 @@ export interface UtilityObject extends Pt {
   type: UtilityType;
   /** Seconds into the step when it pops. */
   t: number;
+  /** The player who throws it (drawn as a dashed throw line), if set. */
+  from?: string | null;
 }
 
 export interface TextObject extends Pt {

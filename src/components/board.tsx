@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { BombGlyph, LineupGlyph, TEAM_COLOR, UtilityGlyph, VisionCone, coneTip } from "@/components/glyphs";
+import { BombGlyph, LineupGlyph, TEAM_COLOR, UTILITY_COLOR, UtilityGlyph, VisionCone, coneTip } from "@/components/glyphs";
 import { MapLayer } from "@/components/map-layer";
 import { MarkerGlyph } from "@/components/marker-icons";
 import { loadSightMask, type SightMask } from "@/lib/strat/sight";
@@ -16,6 +16,8 @@ import {
   type ConeWidth,
   type DrawingObject,
   type MarkerType,
+  type UtilityType,
+  UTILITY_RADIUS,
   type PenSettings,
   type VisionObject,
   type PlacedPlayer,
@@ -82,7 +84,11 @@ type Gesture =
   | { mode: "cone-new"; origin: Pt; cone: ConeWidth; end: Pt | null }
   | { mode: "cone-tip"; id: string; started: boolean }
   | { mode: "cone-origin"; id: string; started: boolean; tip: Pt }
-  | { mode: "erase"; started: boolean };
+  | { mode: "erase"; started: boolean }
+  | { mode: "throw"; from: string; origin: Pt; type: UtilityType; end: Pt };
+
+const UTILITY_TOOLS = new Set<string>(["smoke", "flash", "molotov", "he", "decoy"]);
+const isUtility = (t: Tool): t is UtilityType => UTILITY_TOOLS.has(t);
 
 const angleTo = (from: Pt, to: Pt) => ((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 360) % 360;
 
@@ -110,6 +116,7 @@ export function Board({
   const [draft, setDraft] = useState<{ points: Pt[]; color: string } | null>(null);
   const [penDraft, setPenDraft] = useState<DrawingObject | null>(null);
   const [coneDraft, setConeDraft] = useState<{ origin: Pt; end: Pt; cone: ConeWidth } | null>(null);
+  const [throwDraft, setThrowDraft] = useState<{ origin: Pt; end: Pt; type: UtilityType } | null>(null);
   const [activeTip, setActiveTip] = useState<string | null>(null);
   /** Keyboard cursor: where Enter places or selects. Shown while the board has keyboard focus. */
   const [kbd, setKbd] = useState<Pt | null>(null);
@@ -303,6 +310,15 @@ export function Board({
       setDraft({ points: [from], color: TEAM_COLOR[o.team] });
       return;
     }
+    if (isUtility(tool) && o.kind === "player") {
+      // Drag from a player to where the grenade lands: that player throws it.
+      e.stopPropagation();
+      capture(e);
+      const origin = time === null ? { x: o.x, y: o.y } : playerPositionAt(scene, o, time);
+      gesture.current = { mode: "throw", from: o.id, origin, type: tool, end: origin };
+      setThrowDraft({ origin, end: origin, type: tool });
+      return;
+    }
     if (tool.startsWith("cone-")) {
       onBackgroundDown(e); // a cone can start on top of a player
       e.stopPropagation();
@@ -330,6 +346,11 @@ export function Board({
       if (Math.hypot(p.x - last.x, p.y - last.y) < 3) return;
       g.points.push(p);
       setDraft((d) => (d ? { ...d, points: [...g.points] } : d));
+      return;
+    }
+    if (g.mode === "throw") {
+      g.end = p;
+      setThrowDraft({ origin: g.origin, end: p, type: g.type });
       return;
     }
     if (g.mode === "pen") {
@@ -390,6 +411,14 @@ export function Board({
     const g = gesture.current;
     gesture.current = null;
     if (!g) return;
+    if (g.mode === "throw") {
+      setThrowDraft(null);
+      const far = Math.hypot(g.end.x - g.origin.x, g.end.y - g.origin.y) >= 20;
+      // A plain click on a player drops the grenade there, with no thrower.
+      add({ id: newId(), kind: "utility", type: g.type, t: time ?? 0, from: far ? g.from : null, ...(far ? g.end : g.origin) });
+      onToolDone?.();
+      return;
+    }
     if (g.mode === "pen") {
       setPenDraft(null);
       const points = pen.shape === "free" ? simplify(g.points, 1.2) : g.points;
@@ -640,8 +669,16 @@ export function Board({
         if (u.kind !== "utility") return null;
         const vis = visibilityAt(u, time);
         if (!vis.show) return null;
+        const by = u.from ? playerById.get(u.from) : undefined;
+        const thrower = by ? (time === null ? { x: by.x, y: by.y } : playerPositionAt(scene, by, u.t)) : null;
         return (
           <g key={u.id} opacity={vis.opacity} {...handlers(u)} style={interactive}>
+            {thrower && (
+              <g pointerEvents="none">
+                <line x1={thrower.x} y1={thrower.y} x2={u.x} y2={u.y} stroke={UTILITY_COLOR[u.type]} strokeOpacity="0.8" strokeWidth="2.5" strokeDasharray="2 7" strokeLinecap="round" />
+                <circle cx={thrower.x} cy={thrower.y} r="4" fill={UTILITY_COLOR[u.type]} />
+              </g>
+            )}
             <UtilityGlyph u={u} selected={u.id === selectedId} />
           </g>
         );
@@ -690,6 +727,21 @@ export function Board({
           </g>
         );
       })}
+      {throwDraft && (
+        <g pointerEvents="none">
+          <line
+            x1={throwDraft.origin.x}
+            y1={throwDraft.origin.y}
+            x2={throwDraft.end.x}
+            y2={throwDraft.end.y}
+            stroke={UTILITY_COLOR[throwDraft.type]}
+            strokeWidth="3"
+            strokeDasharray="2 8"
+            strokeLinecap="round"
+          />
+          <circle cx={throwDraft.end.x} cy={throwDraft.end.y} r={UTILITY_RADIUS[throwDraft.type]} fill={UTILITY_COLOR[throwDraft.type]} fillOpacity="0.25" />
+        </g>
+      )}
       {coneDraft && (
         <VisionCone
           v={{

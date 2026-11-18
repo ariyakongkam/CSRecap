@@ -58,7 +58,9 @@ export function nextPlayerNumber(scene: Pick<Scene, "objects">, team: Side): num
 
 /** Removes an object; removing a player also removes the routes attached to it. */
 export function removeObject(objects: BoardObject[], id: string): BoardObject[] {
-  return objects.filter((o) => o.id !== id && !((o.kind === "route" || o.kind === "vision") && o.player === id));
+  return objects
+    .filter((o) => o.id !== id && !((o.kind === "route" || o.kind === "vision") && o.player === id))
+    .map((o) => (o.kind === "utility" && o.from === id ? { ...o, from: null } : o));
 }
 
 /** Copies objects with fresh ids, keeping routes attached to the copied players. */
@@ -74,16 +76,24 @@ export function cloneObjects(objects: BoardObject[]): BoardObject[] {
     idMap.set(o.id, id);
     return { ...o, id };
   });
-  return copies.map((o) => ((o.kind === "route" || o.kind === "vision") && o.player ? { ...o, player: idMap.get(o.player) ?? null } : o));
+  return copies.map((o) => {
+    if ((o.kind === "route" || o.kind === "vision") && o.player) return { ...o, player: idMap.get(o.player) ?? null };
+    if (o.kind === "utility" && o.from) return { ...o, from: idMap.get(o.from) ?? null };
+    return o;
+  });
 }
 
+/** What a new phase brings along from the one before it. */
+export type CarryOver = "all" | "players";
+
 /**
- * The next phase starts where this one ends: players stand where their routes
- * finished, and everything else already placed (grenades, bomb, cones, notes,
- * drawings, lineups) comes along, shown from the start of the phase. Routes
- * stay behind, since they have been walked.
+ * The next phase starts where this one ends: players stand where their routes finished.
+ * "all" also brings everything else already placed (grenades, bomb, cones, markers, notes,
+ * drawings, lineups), shown from the start of the phase. "players" brings only the players,
+ * the cones attached to them and the bomb, for a clean board (e.g. the post-plant).
+ * Routes always stay behind, since they have been walked.
  */
-export function continueStep(step: Step, name: string): Step {
+export function continueStep(step: Step, name: string, carry: CarryOver = "all"): Step {
   // Where each player ends up: the last point of their latest route.
   const ends = new Map<string, Pt>();
   const latest = new Map<string, number>();
@@ -100,7 +110,9 @@ export function continueStep(step: Step, name: string): Step {
       return [{ ...o, ...(end ?? { x: o.x, y: o.y }) }];
     }
     if (o.kind === "route") return [];
-    if (o.kind === "utility" || o.kind === "bomb" || o.kind === "text") return [{ ...o, t: 0 }];
+    if (o.kind === "bomb") return [{ ...o, t: 0 }];
+    if (carry === "players") return o.kind === "vision" && o.player ? [{ ...o }] : [];
+    if (o.kind === "utility" || o.kind === "text") return [{ ...o, t: 0 }];
     return [{ ...o }];
   });
   return newStep(name, cloneObjects(carried));
@@ -216,7 +228,7 @@ function parseObject(v: unknown): BoardObject | null {
     case "utility": {
       const p = pt(o);
       if (!p || !UTILITY.includes(o.type as UtilityType)) return null;
-      return { id, kind: "utility", type: o.type as UtilityType, t, ...p };
+      return { id, kind: "utility", type: o.type as UtilityType, t, from: typeof o.from === "string" ? o.from.slice(0, 40) : null, ...p };
     }
     case "marker": {
       const p = pt(o);
@@ -360,4 +372,26 @@ export function compact(strat: Strat): Strat {
       }),
     })),
   };
+}
+
+/**
+ * The rest of the team, standing in their spawn: one player for each free number,
+ * spread out so the tokens and role labels don't overlap. On a map with no spawn, the middle.
+ */
+export function teamAtSpawn(scene: Scene, spawn: { x: number; y: number; w: number; h: number } | null): PlacedPlayer[] {
+  const used = new Set(scene.objects.filter((o): o is PlacedPlayer => o.kind === "player" && o.team === scene.side).map((o) => o.n));
+  const c = spawn ? { x: spawn.x + spawn.w / 2, y: spawn.y + spawn.h / 2 } : { x: 500, y: 500 };
+  const tall = spawn ? spawn.h > spawn.w : false;
+  const spread = [-2, -1, 0, 1, 2];
+  const out: PlacedPlayer[] = [];
+  for (let n = 1; n <= 5; n++) {
+    if (used.has(n)) continue;
+    const i = spread[n - 1];
+    const along = i * 42;
+    const across = n % 2 === 0 ? 26 : -26;
+    const x = tall ? c.x + across : c.x + along;
+    const y = tall ? c.y + along : c.y + across;
+    out.push({ id: newId(), kind: "player", team: scene.side, n, role: "", x: clamp(x, 20, 980), y: clamp(y, 20, 980) });
+  }
+  return out;
 }

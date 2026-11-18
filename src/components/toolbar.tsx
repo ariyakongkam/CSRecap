@@ -151,7 +151,7 @@ export function toolHint(tool: Tool): string {
     case "molotov":
     case "he":
     case "decoy":
-      return "Click where it lands. Then you're back on the cursor.";
+      return "Click where it lands, or drag from a player to where it lands to show who throws it.";
     case "marker":
       return "Pick a marker, then click the map. Then you're back on the cursor.";
   }

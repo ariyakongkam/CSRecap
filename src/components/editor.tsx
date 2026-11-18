@@ -15,7 +15,7 @@ import { MarkerStrip } from "@/components/tool-options";
 import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
 import { MAPS, MAP_IDS } from "@/lib/maps";
 import * as H from "@/lib/strat/history";
-import { continueStep, move, removeObject } from "@/lib/strat/model";
+import { continueStep, move, removeObject, teamAtSpawn } from "@/lib/strat/model";
 import { shareUrl } from "@/lib/strat/share";
 import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
 import { stratDuration } from "@/lib/strat/timeline";
@@ -129,6 +129,18 @@ export function Editor({ id }: { id: string }) {
   const commitObjects = useCallback((o: BoardObject[]) => setHistory((h) => (h ? H.commit(h, withObjects(h.present, o)) : h)), [withObjects]);
   const liveObjects = useCallback((o: BoardObject[]) => setHistory((h) => (h ? H.live(h, withObjects(h.present, o)) : h)), [withObjects]);
   const checkpoint = useCallback(() => setHistory((h) => (h ? H.checkpoint(h) : h)), []);
+
+  /** Puts every missing teammate in your spawn, ready to be given routes. */
+  function placeTeam() {
+    if (!strat || !step) return;
+    const spawn = MAPS[strat.map].areas.find((a) => a.spawn === strat.side) ?? null;
+    const added = teamAtSpawn(sceneOf(strat, step), spawn);
+    if (added.length === 0) return setNotice("All five teammates are already on the board.");
+    commitObjects([...step.objects, ...added]);
+    setSelectedId(null);
+    setTool("select");
+    setNotice(`${added.length === 5 ? "All five" : `${added.length} more`} placed at ${strat.side} spawn. Drag them into position or draw their routes.`);
+  }
 
   // Typing in a field is one undo step per burst, not one per key.
   const lastTyping = useRef(0);
@@ -344,10 +356,15 @@ export function Editor({ id }: { id: string }) {
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
                 <div className="pointer-events-auto max-w-xs rounded-xl border border-line bg-bg/95 p-5 text-center shadow-2xl">
                   <h2 className="font-display text-2xl font-semibold">Place your five</h2>
-                  <p className="mt-1 text-sm text-muted">Each click places one item, then you&apos;re back on the cursor. Pick the teammate tool again for the next one.</p>
-                  <button type="button" className="btn btn-primary mt-4" onClick={() => setTool("mate")}>
-                    Place a teammate
-                  </button>
+                  <p className="mt-1 text-sm text-muted">Start everyone in spawn and move them from there, or place them one by one.</p>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button type="button" className="btn btn-primary" onClick={placeTeam}>
+                      Place all five at spawn
+                    </button>
+                    <button type="button" className="btn" onClick={() => setTool("mate")}>
+                      Place one at a time
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -368,12 +385,16 @@ export function Editor({ id }: { id: string }) {
             onTime={setTime}
             onPlay={startPlay}
             onStop={stopPlay}
-            onAdd={() => {
-              const next = continueStep(step, `Phase ${strat.steps.length + 1}`);
+            onAdd={(carry) => {
+              const next = continueStep(step, `Phase ${strat.steps.length + 1}`, carry);
               const steps = [...strat.steps.slice(0, current + 1), next, ...strat.steps.slice(current + 1)];
               commitStratNow({ ...strat, steps });
               goToStep(current + 1);
-              setNotice(`Phase ${current + 2} added with everything from phase ${current + 1}. Players start where their routes ended.`);
+              setNotice(
+                carry === "all"
+                  ? `Phase ${current + 2} added with everything from phase ${current + 1}. Players start where their routes ended.`
+                  : `Phase ${current + 2} added with the players and the bomb. Players start where their routes ended.`,
+              );
             }}
             onRename={(name) => commitStrat({ ...strat, steps: strat.steps.map((s, i) => (i === current ? { ...s, name } : s)) })}
             onMove={(dir) => {
@@ -403,6 +424,7 @@ export function Editor({ id }: { id: string }) {
             marker={marker}
             onMarker={setMarker}
             onDeleteStrat={() => setConfirm("delete")}
+            onPlaceTeam={placeTeam}
             relocating={relocate}
             onRelocate={setRelocate}
           />

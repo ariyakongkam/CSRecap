@@ -14,6 +14,7 @@ import {
   nextPlayerNumber,
   parseStrat,
   removeObject,
+  teamAtSpawn,
   safeUrl,
   youtubeId,
 } from "./model";
@@ -351,5 +352,43 @@ describe("markers and decoys", () => {
   it("carries markers into the next phase", () => {
     const next = continueStep(newStep("A", [{ id: "m", kind: "marker", icon: "awp", x: 1, y: 2 }]), "B");
     expect(next.objects[0]).toMatchObject({ kind: "marker", icon: "awp", x: 1, y: 2 });
+  });
+});
+
+describe("coach features", () => {
+  const p1 = { id: "p1", kind: "player" as const, team: "T" as const, n: 1, role: "", x: 100, y: 100 };
+  const smoke = { id: "s", kind: "utility" as const, type: "smoke" as const, t: 0, from: "p1", x: 300, y: 300 };
+
+  it("keeps the thrower attached when a phase is copied, and forgets a deleted thrower", () => {
+    const next = continueStep(newStep("A", [p1, smoke]), "B");
+    const p = next.objects.find((o) => o.kind === "player")!;
+    const u = next.objects.find((o) => o.kind === "utility");
+    expect(u).toMatchObject({ from: p.id });
+    expect(removeObject([p1, smoke], "p1")).toEqual([{ ...smoke, from: null }]);
+  });
+
+  it("can start a phase with only the players, cones on players and the bomb", () => {
+    const step = newStep("A", [
+      p1,
+      smoke,
+      { id: "b", kind: "bomb", t: 4, x: 1, y: 1 },
+      { id: "m", kind: "marker", icon: "anchor", x: 1, y: 1 },
+      { id: "v", kind: "vision", player: "p1", x: 100, y: 100, angle: 0, length: 100, cone: "normal" },
+      { id: "v2", kind: "vision", player: null, x: 9, y: 9, angle: 0, length: 100, cone: "normal" },
+    ]);
+    const kinds = continueStep(step, "B", "players").objects.map((o) => o.kind).sort();
+    expect(kinds).toEqual(["bomb", "player", "vision"]);
+  });
+
+  it("puts the missing teammates in spawn without stacking them", () => {
+    const scene = { map: "mirage" as const, side: "T" as const, objects: [{ ...p1, n: 2 }] };
+    const team = teamAtSpawn(scene, { x: 845, y: 290, w: 70, h: 130 });
+    expect(team.map((p) => p.n)).toEqual([1, 3, 4, 5]);
+    for (const a of team) for (const b of team) if (a !== b) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(40);
+  });
+
+  it("reads the thrower from saved data", () => {
+    const s = parseStrat({ v: 2, id: "s", name: "S", map: "mirage", side: "T", call: "", notes: "", steps: [{ id: "a", name: "A", objects: [p1, smoke] }] })!;
+    expect(s.steps[0].objects[1]).toMatchObject({ from: "p1" });
   });
 });

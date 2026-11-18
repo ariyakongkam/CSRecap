@@ -4,7 +4,7 @@ import { UTILITY_RADIUS, type BombObject, type LineupObject, type Side, type Uti
 
 export const TEAM_COLOR: Record<Side, string> = { T: "var(--t)", CT: "var(--ct)" };
 
-const UTILITY_COLOR: Record<UtilityObject["type"], string> = {
+export const UTILITY_COLOR: Record<UtilityObject["type"], string> = {
   smoke: "var(--smoke)",
   flash: "var(--flash)",
   molotov: "var(--molotov)",

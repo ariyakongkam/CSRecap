@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Play, Plus, Square, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CarryOver } from "@/lib/strat/model";
 import type { Step } from "@/lib/strat/types";
 
 export interface PhaseBarProps {
@@ -20,7 +21,8 @@ export interface PhaseBarProps {
   onPlay: () => void;
   onStop: () => void;
   /** Editing; leave out for the read-only view. */
-  onAdd?: () => void;
+  /** Adds the next phase, bringing everything or only the players (and bomb). */
+  onAdd?: (carry: CarryOver) => void;
   onRename?: (name: string) => void;
   onMove?: (dir: -1 | 1) => void;
   onDelete?: () => void;
@@ -63,6 +65,24 @@ export function PhaseBar(props: PhaseBarProps) {
   }, [playing]);
 
   const step = steps[current];
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !menuRef.current?.contains(e.target as Node)) setMenu(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menu]);
+  const add = (carry: CarryOver) => {
+    setMenu(false);
+    onAdd?.(carry);
+  };
   const progress = playing && time !== null ? Math.min(1, time / (durations[current] || 1)) : 0;
 
   return (
@@ -102,11 +122,28 @@ export function PhaseBar(props: PhaseBarProps) {
         </div>
 
         {editable && (
-          <button type="button" onClick={onAdd} className="btn shrink-0" title="New phase: starts with everything placed so far, players where their routes end">
-            <Plus className="size-4" />
-            <span className="max-sm:hidden">New phase</span>
-            <span className="sr-only sm:hidden">New phase</span>
-          </button>
+          <div ref={menuRef} className="relative shrink-0">
+            <button type="button" onClick={() => setMenu((m) => !m)} className="btn" aria-expanded={menu} aria-controls="new-phase-menu">
+              <Plus className="size-4" />
+              <span className="max-sm:hidden">New phase</span>
+              <span className="sr-only sm:hidden">New phase</span>
+            </button>
+            {menu && (
+              <div
+                id="new-phase-menu"
+                className="absolute right-0 bottom-full z-30 mb-2 w-72 space-y-1 rounded-xl border border-line bg-bg p-1.5 shadow-2xl"
+              >
+                <button type="button" className="flex min-h-11 w-full flex-col items-start rounded-lg px-3 py-2 text-left hover:bg-panel-2" onClick={() => add("all")}>
+                  <span className="font-medium">Keep everything</span>
+                  <span className="text-sm text-muted">Players, grenades, enemies, markers and notes come along.</span>
+                </button>
+                <button type="button" className="flex min-h-11 w-full flex-col items-start rounded-lg px-3 py-2 text-left hover:bg-panel-2" onClick={() => add("players")}>
+                  <span className="font-medium">Players and bomb only</span>
+                  <span className="text-sm text-muted">A clean board: your team, enemies and the bomb. Good for the post-plant.</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
