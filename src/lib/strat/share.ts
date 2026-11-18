@@ -23,3 +23,11 @@ export function decodeStrat(encoded: string): Strat | null {
 export function shareUrl(origin: string, strat: Strat): string {
   return `${origin}/view#${encodeStrat(strat)}`;
 }
+
+/**
+ * An invite to edit: opens the strat in the other person's own planner, under the same id,
+ * so when they send their link back you can update your version with their changes.
+ */
+export function inviteUrl(origin: string, strat: Strat): string {
+  return `${origin}/join#${encodeStrat(strat)}`;
+}

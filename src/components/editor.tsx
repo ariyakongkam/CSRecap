@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, Check, Eraser, Link2, Redo2, Save, Sparkles, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Redo2, Save, Sparkles, Undo2, UserPlus } from "lucide-react";
 import { AiAnalyzePoints } from "@/components/ai-analyze";
+import { InviteDialog } from "@/components/invite";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,7 +18,6 @@ import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
 import { MAPS, MAP_IDS } from "@/lib/maps";
 import * as H from "@/lib/strat/history";
 import { continueStep, move, removeObject, teamAtSpawn } from "@/lib/strat/model";
-import { shareUrl } from "@/lib/strat/share";
 import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
 import { stratDuration } from "@/lib/strat/timeline";
 import { DEFAULT_PEN, MARKER_TYPES, isHexColor, sceneOf, type MarkerType, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
@@ -46,7 +46,13 @@ const isPen = (v: unknown): v is PenSettings => {
 const isBool = (v: unknown): v is boolean => typeof v === "boolean";
 const isIndex = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
-export function Editor({ id }: { id: string }) {
+const ARRIVAL: Record<string, string> = {
+  invite: "You were invited to edit this strat. It's saved in your browser. Send your changes back with Invite, then Can edit.",
+  updated: "Updated with their changes. Your earlier version is saved as a copy in your strats.",
+  same: "You already have this version of the strat.",
+};
+
+export function Editor({ id, from = null }: { id: string; from?: string | null }) {
   const router = useRouter();
   const [history, setHistory] = useState<H.History | null>(null);
   const [missing, setMissing] = useState(false);
@@ -61,7 +67,8 @@ export function Editor({ id }: { id: string }) {
   const [time, setTime] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [save, setSave] = useState<SaveState>({ status: "saved", at: null });
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(from ? (ARRIVAL[from] ?? null) : null);
+  const [invite, setInvite] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mapPicker, setMapPicker] = useState(false);
   const [aiInfo, setAiInfo] = useState(false);
@@ -115,7 +122,8 @@ export function Editor({ id }: { id: string }) {
 
   useEffect(() => {
     if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 2800);
+    // Long messages stay a little longer, so they can be read.
+    const t = setTimeout(() => setNotice(null), Math.max(2800, (notice?.length ?? 0) * 55));
     return () => clearTimeout(t);
   }, [notice]);
 
@@ -224,16 +232,6 @@ export function Editor({ id }: { id: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedId, stepIndex, withObjects, strat, doSave, playing, startPlay, stopPlay]);
 
-  async function share() {
-    if (!strat) return;
-    const url = shareUrl(window.location.origin, strat);
-    try {
-      await navigator.clipboard.writeText(url);
-      setNotice("Share link copied. Anyone with it can view this strategy.");
-    } catch {
-      window.prompt("Copy this link:", url);
-    }
-  }
 
   if (missing) {
     return (
@@ -323,9 +321,9 @@ export function Editor({ id }: { id: string }) {
           {save.status === "saved" ? <Check className="size-4" /> : <Save className="size-4" />}
           <span className="max-sm:hidden">{save.status === "saved" ? "Saved" : "Save"}</span>
         </button>
-        <button type="button" className="btn btn-primary shrink-0 max-sm:w-11 max-sm:px-0" onClick={share} aria-label="Copy share link">
-          <Link2 className="size-4" />
-          <span className="max-sm:hidden">Share</span>
+        <button type="button" className="btn btn-primary shrink-0 max-sm:w-11 max-sm:px-0" onClick={() => setInvite(true)} aria-label="Invite others">
+          <UserPlus className="size-4" />
+          <span className="max-sm:hidden">Invite</span>
         </button>
       </header>
 
@@ -444,6 +442,8 @@ export function Editor({ id }: { id: string }) {
           />
         </aside>
       </div>
+
+      <InviteDialog open={invite} onClose={() => setInvite(false)} strat={strat} />
 
       <Modal open={aiInfo} onClose={() => setAiInfo(false)} title="AI Analyze is coming soon">
         <p className="mb-4">Learn from every match: turn your demos into a better plan for the next one.</p>

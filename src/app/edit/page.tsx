@@ -5,8 +5,9 @@ import { Suspense } from "react";
 import { Editor } from "@/components/editor";
 
 function EditorPage() {
-  const id = useSearchParams().get("id") ?? "";
-  return <Editor key={id} id={id} />;
+  const params = useSearchParams();
+  const id = params.get("id") ?? "";
+  return <Editor key={id} id={id} from={params.get("from")} />;
 }
 
 export default function Page() {

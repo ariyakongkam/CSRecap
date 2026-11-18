@@ -39,6 +39,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
 - `/edit?id=…`: the planner. `/view#…`: read-only shared strat (whole strat compressed in the URL fragment).
+- `/join#…`: an edit invite (`inviteUrl`, same strat id). New strat: saved and opened (`/edit?id=…&from=invite`).
+  Already have it: choose "Update mine with their changes" (old version kept via `backupCopy`), "Keep both" or
+  ignore. Same content: opens yours. The editor's "Invite" button (`invite.tsx`) offers "Can view" and "Can edit" links.
+  Not live: no server. Real-time co-editing would need hosting, accounts and a database.
 
 ## Code map
 

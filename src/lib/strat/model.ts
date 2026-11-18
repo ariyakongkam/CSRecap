@@ -398,3 +398,14 @@ export function teamAtSpawn(scene: Scene, spawn: { x: number; y: number; w: numb
   }
   return out;
 }
+
+/** True when two versions of a strat have the same content (save times aside). */
+export function sameContent(a: Strat, b: Strat): boolean {
+  const body = (s: Strat) => JSON.stringify(compact({ ...s, createdAt: "", updatedAt: "" }));
+  return body(a) === body(b);
+}
+
+/** A copy of your version, kept before an invite link replaces it. */
+export function backupCopy(strat: Strat): Strat {
+  return { ...duplicateStrat(strat), name: `${strat.name} (your earlier version)`.slice(0, 80) };
+}

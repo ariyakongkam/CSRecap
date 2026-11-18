@@ -404,3 +404,21 @@ describe("phase notes", () => {
     expect(s.steps[2].note).toHaveLength(500);
   });
 });
+
+describe("invites", () => {
+  it("an edit invite keeps the strat's id, so a link sent back matches your version", async () => {
+    const { inviteUrl, decodeStrat } = await import("./share");
+    const { createStrat, sameContent, backupCopy } = await import("./model");
+    const mine = createStrat("mirage", "T", "Exec");
+    const url = inviteUrl("https://x.test", mine);
+    expect(url.startsWith("https://x.test/join#")).toBe(true);
+    const theirs = decodeStrat(url.split("#")[1])!;
+    expect(theirs.id).toBe(mine.id);
+    expect(sameContent(mine, { ...theirs, updatedAt: "2030-01-01T00:00:00.000Z" })).toBe(true);
+    const changed = { ...theirs, steps: [{ ...theirs.steps[0], note: "Go on the flash" }] };
+    expect(sameContent(mine, changed)).toBe(false);
+    const backup = backupCopy(mine);
+    expect(backup.id).not.toBe(mine.id);
+    expect(backup.name).toBe("Exec (your earlier version)");
+  });
+});

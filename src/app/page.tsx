@@ -23,7 +23,7 @@ const FEATURES = [
   {
     icon: <Link2 className="size-6" />,
     title: "Share in one link",
-    text: "Send the strat to your team's Discord. Teammates open it in any browser without an account.",
+    text: "Send a view link to your team's Discord, or an edit link to your co-coach. Everyone opens it in any browser without an account.",
   },
 ];
 

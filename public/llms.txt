@@ -6,7 +6,7 @@
 - Maps: all CS2 Active Duty maps (Mirage, Dust II, Inferno, Nuke upper level, Ancient, Anubis, Train, Overpass) on Valve's radar overviews, plus a blank board.
 - Objects: teammates and enemies (numbered 1-5 with roles), movement routes, smokes, flashes, molotovs, HE grenades, the C4, sight cones (wide, normal, narrow), pen drawings (freehand, lines, arrows, rectangles, dashed), text notes and lineup pins linking to a YouTube video or image.
 - Phases: a strat is split into phases (for example default, execute, post-plant). A new phase starts with everything already placed, with players where their routes ended. Play runs through every phase in order and animates the routes.
-- Sharing: the whole strat is stored in the share link; teammates open it without an account and can save their own copy.
+- Sharing and invites: the whole strat is stored in the link. A view link lets teammates watch and play it and save their own copy; an edit link opens it in the other person's planner, and when they send their edit link back you can update your version with their changes (your old version is kept as a copy). Changes are not synced live. No account is needed.
 - Saving: strats are saved automatically in the browser on the device they were made on.
 
 ## Coming soon (not available yet)
