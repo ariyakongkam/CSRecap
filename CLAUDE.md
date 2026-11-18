@@ -129,7 +129,18 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
   login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
 
-## Self-hosting (the owner hosts it on their own machine with their own domain)
+## Hosting on Cloudflare Pages (the owner's choice; domain bought at Cloudflare)
+
+- Pages project connected to GitHub `ariyakongkam/csrecap`, production branch `claude/hopeful-edison-tja98v`,
+  build command `npm run export`, output folder `out`, env var `NEXT_PUBLIC_SITE_URL=https://<domain>`.
+  `.node-version` pins Node 22 for the build. `public/_headers` sets security and cache headers. Pages serves
+  `/app` from `app.html` and `404.html` for unknown paths. Every push to the branch deploys automatically.
+- The share image is a static `src/app/opengraph-image.png` (+ `.alt.txt`), so every host serves it as a PNG.
+  To change it, edit the PNG (the old `opengraph-image.tsx` generator was removed).
+- Keep Cloudflare Web Analytics off unless the owner decides otherwise: the site promises no analytics.
+
+## Self-hosting alternative (own machine)
+
 
 - `npm run export` builds the whole site as static files in `out/` (`next.config.ts` switches to `output: "export"`
   when npm runs the `export` script). `opengraph-image`, `robots` and `sitemap` are `force-static` for this.
