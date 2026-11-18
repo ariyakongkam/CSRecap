@@ -795,6 +795,7 @@ export function Board({
             </text>
             {p.role && (
               <text
+                pointerEvents="none"
                 y="40"
                 textAnchor="middle"
                 fontSize="16"
