@@ -168,13 +168,14 @@ export function Board({
     if (id === selectedId) onSelect?.(null);
   }
 
-  function placePlayer(team: Side, p: Pt) {
+  function placePlayer(team: Side, p: Pt): boolean {
     const n = nextPlayerNumber(scene, team);
     if (n === null) {
       onNotice?.(team === scene.side ? "All five teammates are already on the board." : "All five enemies are already on the board.");
-      return;
+      return false;
     }
     add({ id: newId(), kind: "player", team, n, role: "", ...p });
+    return true;
   }
 
   function onBackgroundDown(e: ReactPointerEvent) {
@@ -211,31 +212,36 @@ export function Board({
     }
   }
 
-  /** Tools that drop something on one spot: players, grenades, notes, bomb, lineups. */
+  /**
+   * Tools that drop something on one spot: players, grenades, notes, bomb, lineups.
+   * Each places once, then it's back to the cursor, so nothing gets placed by mistake.
+   */
   function placeAt(p: Pt) {
+    if (dropAt(p)) onToolDone?.();
+  }
+
+  function dropAt(p: Pt): boolean {
     switch (tool) {
       case "mate":
-        placePlayer(scene.side, p);
-        return;
+        return placePlayer(scene.side, p);
       case "enemy":
-        placePlayer(enemyOf(scene.side), p);
-        return;
+        return placePlayer(enemyOf(scene.side), p);
       case "text":
         add({ id: newId(), kind: "text", text: "Note", t: time ?? 0, ...p });
-        return;
+        return true;
       case "bomb": {
         const existing = objects.find((o) => o.kind === "bomb");
         if (existing) {
           onCommit?.(objects.map((o) => (o.id === existing.id ? { ...o, ...p } : o)));
           onSelect?.(existing.id);
-          return;
+          return true;
         }
         add({ id: newId(), kind: "bomb", t: time ?? 0, ...p });
-        return;
+        return true;
       }
       case "lineup":
         add({ id: newId(), kind: "lineup", title: "", url: "", ...p });
-        return;
+        return true;
       case "select":
       case "route":
       case "pen":
@@ -243,9 +249,10 @@ export function Board({
       case "cone-wide":
       case "cone-normal":
       case "cone-narrow":
-        return;
+        return false;
       default:
         add({ id: newId(), kind: "utility", type: tool, t: time ?? 0, ...p });
+        return true;
     }
   }
 
@@ -404,6 +411,7 @@ export function Board({
       duration: walkDuration(points),
     };
     add(route);
+    onToolDone?.(); // one route, then back to the cursor
   }
 
   /** Moving a player also moves the start of their first route, so the path stays attached. */

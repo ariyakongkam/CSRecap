@@ -125,29 +125,29 @@ export function toolHint(tool: Tool): string {
     case "select":
       return "Click to select. Drag to move.";
     case "mate":
-      return "Click to place the next teammate.";
+      return "Click to place a teammate. Then you're back on the cursor.";
     case "enemy":
-      return "Click to place an enemy. Enemies are square.";
+      return "Click to place an enemy (square). Then you're back on the cursor.";
     case "cone-wide":
     case "cone-normal":
     case "cone-narrow":
       return "Click a player (or anywhere) and drag towards where they look. Then you're back on the cursor.";
     case "route":
-      return "Drag from a player to draw their route.";
+      return "Drag from a player to draw their route. Then you're back on the cursor.";
     case "pen":
       return "Draw on the map. Pick the type, colour and thickness under Tools on the right.";
     case "eraser":
       return "Click or drag over anything to erase it.";
     case "text":
-      return "Click to add a note.";
+      return "Click to add a note. Then you're back on the cursor.";
     case "bomb":
-      return "Click where the bomb is planted.";
+      return "Click where the bomb is planted. Then you're back on the cursor.";
     case "lineup":
       return "Click where the grenade lands, then paste the video or image link.";
     case "smoke":
     case "flash":
     case "molotov":
     case "he":
-      return "Click where it lands.";
+      return "Click where it lands. Then you're back on the cursor.";
   }
 }

@@ -85,6 +85,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   except routes, with players at their route ends and times reset to 0. "Delete phase N" sits below the board.
   Play (`phase-bar.tsx`) runs every phase from the first, animating routes, then stops. Old "Step N" names are
   read as "Phase N" (`phaseName`). "Round" was not used: in CS a round is the whole round.
+- **Every placement tool is one-shot** (owner's request, against misplacing): players, enemies, grenades, bomb,
+  notes, lineups, routes and cones place ONE item, then the tool goes back to Select (`onToolDone`, `placeAt` in
+  board.tsx). Pen and eraser stay on for several strokes.
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
   the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
 

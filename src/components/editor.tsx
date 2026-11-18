@@ -335,9 +335,9 @@ export function Editor({ id }: { id: string }) {
               <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
                 <div className="pointer-events-auto max-w-xs rounded-xl border border-line bg-bg/95 p-5 text-center shadow-2xl">
                   <h2 className="font-display text-2xl font-semibold">Place your five</h2>
-                  <p className="mt-1 text-sm text-muted">Start with your teammates, then draw where each one goes.</p>
+                  <p className="mt-1 text-sm text-muted">Each click places one item, then you&apos;re back on the cursor. Press 1 for the next teammate.</p>
                   <button type="button" className="btn btn-primary mt-4" onClick={() => setTool("mate")}>
-                    Place teammates
+                    Place a teammate
                   </button>
                 </div>
               </div>
