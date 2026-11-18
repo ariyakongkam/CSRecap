@@ -43,6 +43,10 @@ export const FAQ: { q: string; a: string }[] = [
     a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself.",
   },
   {
+    q: `How can I support ${APP_NAME}?`,
+    a: `${APP_NAME} is free and has no ads. If it helps you or your team, you can support it on Ko-fi: ko-fi.com/meowbuh. Sharing your strats with friends helps too.`,
+  },
+  {
     q: `Is ${APP_NAME} affiliated with Valve?`,
     a: `No. ${APP_NAME} is an independent tool. The map radar images are © Valve Corporation.`,
   },

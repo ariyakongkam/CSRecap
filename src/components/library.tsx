@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Board } from "@/components/board";
 import { Logo } from "@/components/logo";
-import { APP_NAME } from "@/lib/brand";
 import { MAPS, MAP_IDS, type MapId } from "@/lib/maps";
 import { createStrat, duplicateStrat } from "@/lib/strat/model";
 import { deleteStrat, listStrats, saveStrat } from "@/lib/strat/storage";
@@ -178,9 +177,6 @@ export function Library() {
         )}
       </section>
 
-      <footer className="mt-16 border-t border-line pt-6 text-sm text-faint">
-        Map radar overviews and screenshots are © Valve Corporation. {APP_NAME} is not affiliated with or endorsed by Valve.
-      </footer>
     </main>
   );
 }

@@ -38,7 +38,12 @@ Before saying something works: type check, lint, tests and build must pass, and 
   round." + a live example strat on a tilted card that flattens on scroll, cat peeking over it, pause button), 3 features,
   who it's for, AI Analyze (coming soon), FAQ, closing call to action. Motion (`src/components/landing/*`, globals.css):
   smooth scroll, scroll progress bar, sections rise in (`Reveal`, only when `.js` is on <html>), hover lifts on buttons
-  and cards, sliding link underlines. All of it is off with reduced motion.
+  and cards, sliding link underlines. All of it is off with reduced motion. The hero example is `DEMO_STRAT`
+  (`src/lib/strat/demo.ts`): fixed ids, routes found by A* pathfinding over `mirage-sight.png` with ~10 units
+  clearance and checked to never cross a wall or crate (the old hand-made template walked through walls).
+- **Footer** (`src/components/site-footer.tsx`, on `/`, `/app` and `/view`): logo, tagline, Ko-fi button, links,
+  maps, privacy line, Valve credit. **Ko-fi:** https://ko-fi.com/meowbuh (`KOFI_URL` in `src/lib/links.ts`), a plain
+  link in Ko-fi coral (`.btn-kofi`), never Ko-fi's widget script (privacy promise). Also in the FAQ.
 - `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
 - `/edit?id=…`: the planner. `/view#…`: read-only shared strat (whole strat compressed in the URL fragment).

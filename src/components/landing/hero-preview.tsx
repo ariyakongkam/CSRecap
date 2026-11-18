@@ -8,7 +8,7 @@ import { phaseDuration } from "@/components/phase-bar";
 import { APP_NAME } from "@/lib/brand";
 import { MAPS } from "@/lib/maps";
 import { stratDuration } from "@/lib/strat/timeline";
-import { TEMPLATES } from "@/lib/strat/templates";
+import { DEMO_STRAT } from "@/lib/strat/demo";
 import { sceneOf, type Strat } from "@/lib/strat/types";
 
 const reducedMotion = () =>
@@ -21,7 +21,7 @@ const reducedMotion = () =>
  * follows the pointer with its eyes. With reduced motion it is a still, flat board.
  */
 export function HeroPreview() {
-  // Built after mount: the example has random ids, which must not differ between server and browser.
+  // Set after mount, so the server page stays light and the radar shows first.
   const [strat, setStrat] = useState<Strat | null>(null);
   const [phase, setPhase] = useState(0);
   const [time, setTime] = useState<number | null>(null);
@@ -30,7 +30,7 @@ export function HeroPreview() {
   const catRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setStrat(TEMPLATES[0].build());
+    setStrat(DEMO_STRAT);
     if (reducedMotion()) setPlaying(false);
   }, []);
 

@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { ArrowRight, Layers, Link2, Map as MapIcon } from "lucide-react";
 import Link from "next/link";
 import { AiAnalyzeCard } from "@/components/ai-analyze";
-import { Logo } from "@/components/logo";
 import { LogoMark } from "@/components/logo-mark";
 import { HeroPreview } from "@/components/landing/hero-preview";
 import { Reveal } from "@/components/landing/reveal";
 import { SiteHeader } from "@/components/landing/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { APP_NAME } from "@/lib/brand";
 import { ACTIVE_DUTY, FAQ, SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
@@ -189,12 +189,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-faint sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Logo />
-          <p>Not affiliated with Valve. Map radar images are © Valve Corporation.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

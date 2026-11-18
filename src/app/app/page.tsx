@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Library } from "@/components/library";
+import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title: "Your strats",
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function AppHome() {
-  return <Library />;
+  return (
+    <>
+      <Library />
+      <SiteFooter />
+    </>
+  );
 }
