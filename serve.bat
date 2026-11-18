@@ -1,7 +1,7 @@
 @echo off
-rem Puts csgg online at your domain. Keep this window open: closing it takes the site offline.
+rem Puts radstrat online at your domain. Keep this window open: closing it takes the site offline.
 cd /d "%~dp0"
-title csgg - online
+title radstrat - online
 
 if not exist hosting\site\index.html (
   echo The site isn't built yet. Run publish.bat first.
@@ -19,7 +19,7 @@ set "CSGG_SITE=%~dp0hosting\site"
 rem Caddy reads forward slashes on Windows too, and they never clash with its quoting.
 set "CSGG_SITE=%CSGG_SITE:\=/%"
 
-echo Starting csgg at https://%CSGG_DOMAIN%
+echo Starting radstrat at https://%CSGG_DOMAIN%
 echo If Windows asks about the firewall, click Allow.
 echo Keep this window open. Press Ctrl+C to stop.
 echo.

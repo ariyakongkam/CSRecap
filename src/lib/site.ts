@@ -1,7 +1,10 @@
 import { APP_NAME } from "@/lib/brand";
 
 /** Public URL of the site. Set NEXT_PUBLIC_SITE_URL (e.g. https://csrecap.com) when it goes live. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+/** The live address. NEXT_PUBLIC_SITE_URL overrides it (e.g. for a test address); `npm run dev` uses localhost. */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://radstrat.app")
+).replace(/\/$/, "");
 
 export const SITE_TITLE = `${APP_NAME}: free CS2 strat planner for players, teams and coaches`;
 export const SITE_DESCRIPTION =

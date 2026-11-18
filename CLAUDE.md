@@ -1,4 +1,4 @@
-# csgg: project notes for Claude
+# radstrat (formerly csgg): project notes for Claude
 
 Read this first. It sums up what was built and decided in the earlier sessions, so you can carry on without
 asking the owner to repeat themselves.
@@ -10,7 +10,7 @@ asking the owner to repeat themselves.
 - Likes to see results: after visible changes, describe what changed and, where possible, show it.
 - Ask before anything hard to undo (deleting, overwriting, pushing to `main`, deploying).
 
-## What csgg is
+## What radstrat is
 
 A free, browser-based **CS2 strat planner / tactics board** (like ValoPlant, but for Counter-Strike 2) for players,
 IGLs, teams, coaches and esports. Plan executes on a 2D map phase by phase, play it back, share it in one link.
@@ -65,9 +65,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   `toolbar.tsx`, `tool-options.tsx` (pen and cone panels), `inspector.tsx`, `phase-bar.tsx`, `glyphs.tsx`,
   `utility-icons.tsx` (own grenade icons: cloud, starburst, frag, bottle, decoy with waves), `marker-icons.tsx`
   (lucide icons for markers), `map-layer.tsx`.
-- `src/lib/brand.ts`: the app name (`csgg`). `src/lib/site.ts`: site URL, title, description, FAQ.
+- `src/lib/brand.ts`: the app name (`radstrat`). `src/lib/site.ts`: site URL, title, description, FAQ.
 - `src/app/page.tsx`: landing page with JSON-LD (SoftwareApplication, FAQPage). Also `robots.ts`, `sitemap.ts`,
-  `opengraph-image.tsx`, `icon.svg`, `public/llms.txt`.
+  `opengraph-image.png`, `icon.svg`, `public/llms.txt`.
 
 ## Decisions already made (don't undo without asking)
 
@@ -77,7 +77,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - Map style follows ValoPlant: plain, bombsite letters only, callout names behind a "Callouts" toggle.
   Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Nuke is the upper
   level only; Vertigo is missing (two levels).
-- Name is **csgg**. Logo is a white cat head inside a light-blue orbit with a star (`src/components/logo-mark.tsx`,
+- Name is **radstrat** (renamed from csgg in Nov 2026; live at https://radstrat.app). `APP_NAME` in `brand.ts`
+  drives the wordmark, titles and copy; the share image `opengraph-image.png` has the name baked in. Logo is a white cat head inside a light-blue orbit with a star (`src/components/logo-mark.tsx`,
   vector paths; the source image has a transparent background, so the white cat is easy to miss).
 - **Calls to action are light blue** (`--brand: #90b8f8`, `.btn-primary`). Selection on the board is chalk
   (`--chalk`). T is orange (`--t`), CT is blue (`--ct`).
@@ -131,8 +132,10 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 ## Hosting on Cloudflare Pages (the owner's choice; domain bought at Cloudflare)
 
-- Pages project connected to GitHub `ariyakongkam/csrecap`, production branch `claude/hopeful-edison-tja98v`,
-  build command `npm run export`, output folder `out`, env var `NEXT_PUBLIC_SITE_URL=https://<domain>`.
+- Pages project `radstrat` connected to GitHub `ariyakongkam/csrecap`, production branch
+  `claude/hopeful-edison-tja98v`, framework preset None, build command `npm run export`, output folder `out`,
+  custom domain `radstrat.app`. `SITE_URL` defaults to https://radstrat.app outside `npm run dev`, so no env var is
+  needed (`NEXT_PUBLIC_SITE_URL` still overrides it).
   `.node-version` pins Node 22 for the build. `public/_headers` sets security and cache headers. Pages serves
   `/app` from `app.html` and `404.html` for unknown paths. Every push to the branch deploys automatically.
 - The share image is a static `src/app/opengraph-image.png` (+ `.alt.txt`), so every host serves it as a PNG.
@@ -160,8 +163,6 @@ owner runs `update.bat`, or tell them not to run it, because it overwrites uncom
 
 ## Not built yet / ideas
 
-- Deploy (e.g. Vercel) and point the owner's domain at it; set `NEXT_PUBLIC_SITE_URL` for canonical links,
-  sitemap and share previews.
 - Full callouts for the remaining maps; Nuke lower level and Vertigo.
 - Team workspaces, real-time co-editing, comments (would need a backend and accounts).
 - The idea with the most product value from the research: compare a planned strat with what the team actually

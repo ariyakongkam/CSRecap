@@ -1,8 +1,8 @@
 @echo off
-rem Uppdaterar csgg i den har mappen till senaste versionen pa GitHub. Fragar innan nagot andras.
+rem Uppdaterar radstrat i den har mappen till senaste versionen pa GitHub. Fragar innan nagot andras.
 chcp 65001 >nul
 cd /d "%~dp0"
-title csgg - uppdatera
+title radstrat - uppdatera
 set "REPO=https://github.com/ariyakongkam/csrecap.git"
 set "BRANCH=claude/hopeful-edison-tja98v"
 
@@ -51,7 +51,7 @@ if errorlevel 2 (
   exit /b 0
 )
 
-git checkout -q -f -B csgg %NEW%
+git checkout -q -f -B radstrat %NEW%
 if errorlevel 1 (
   echo Något gick fel när filerna skulle ersättas. Inget har tagits bort.
   pause

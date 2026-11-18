@@ -1,8 +1,8 @@
 @echo off
-rem Builds csgg as a website and puts it in hosting\site, ready for serve.bat.
+rem Builds radstrat as a website and puts it in hosting\site, ready for serve.bat.
 rem Run it again after update.bat to put the newest version online.
 cd /d "%~dp0"
-title csgg - publish
+title radstrat - publish
 
 where node >nul 2>nul
 if errorlevel 1 (
@@ -15,7 +15,7 @@ if errorlevel 1 (
 set "DOMAIN="
 if exist hosting\domain.txt set /p DOMAIN=<hosting\domain.txt
 if not defined DOMAIN (
-  echo Which domain should csgg run on? Type it without https:// - for example: csgg.gg
+  echo Which domain should radstrat run on? Type it without https:// - for example: radstrat.gg
   set /p DOMAIN=Domain: 
 )
 if not defined DOMAIN (
@@ -23,7 +23,7 @@ if not defined DOMAIN (
   pause
   exit /b 1
 )
-rem Accept "https://csgg.gg/" too: keep just the domain.
+rem Accept "https://radstrat.gg/" too: keep just the domain.
 set "DOMAIN=%DOMAIN:https://=%"
 set "DOMAIN=%DOMAIN:http://=%"
 set "DOMAIN=%DOMAIN:/=%"
@@ -31,7 +31,7 @@ set "DOMAIN=%DOMAIN: =%"
 > hosting\domain.txt echo %DOMAIN%
 
 echo.
-choice /c YN /m "Build csgg for https://%DOMAIN% and replace the published site"
+choice /c YN /m "Build radstrat for https://%DOMAIN% and replace the published site"
 if errorlevel 2 (
   echo Nothing was changed.
   pause

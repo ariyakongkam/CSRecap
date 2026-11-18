@@ -1,8 +1,8 @@
 @echo off
-rem Starts csgg, the CS2 tactics board, on this PC.
+rem Starts radstrat, the CS2 tactics board, on this PC.
 rem Double-click this file. Close the window (or press Ctrl+C) to stop the app.
 cd /d "%~dp0"
-title csgg - CS2 tactics board
+title radstrat - CS2 tactics board
 
 where node >nul 2>nul
 if errorlevel 1 (
@@ -22,7 +22,7 @@ if not exist node_modules (
   )
 )
 
-echo Starting csgg at http://localhost:3000 - your browser will open in a few seconds.
+echo Starting radstrat at http://localhost:3000 - your browser will open in a few seconds.
 echo Keep this window open while you use the app.
 start "" cmd /c "timeout /t 8 >nul & start http://localhost:3000"
 call npm run dev

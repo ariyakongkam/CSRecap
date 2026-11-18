@@ -1,4 +1,4 @@
-# Web server settings for csgg (Caddy, https://caddyserver.com).
+# Web server settings for radstrat (Caddy, https://caddyserver.com).
 # serve.bat fills in CSGG_DOMAIN (your domain) and CSGG_SITE (the built site from publish.bat).
 # Caddy gets and renews the HTTPS certificate for your domain by itself.
 

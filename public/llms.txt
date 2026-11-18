@@ -1,6 +1,6 @@
-# csgg
+# radstrat
 
-> csgg is a free online CS2 (Counter-Strike 2) strat planner and tactics board. Players, in-game leaders (IGLs), teams, coaches and esports organisations use it to plan executes, retakes, setups and smoke lineups on 2D radar maps, split the round into phases, and share the plan with teammates in one link. No account is needed.
+> radstrat is a free online CS2 (Counter-Strike 2) strat planner and tactics board. Players, in-game leaders (IGLs), teams, coaches and esports organisations use it to plan executes, retakes, setups and smoke lineups on 2D radar maps, split the round into phases, and share the plan with teammates in one link. No account is needed.
 
 ## What it does
 - Maps: all CS2 Active Duty maps (Mirage, Dust II, Inferno, Nuke upper level, Ancient, Anubis, Train, Overpass) on Valve's radar overviews, plus a blank board.
