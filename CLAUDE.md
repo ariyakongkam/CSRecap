@@ -253,6 +253,12 @@ Before saying something works: type check, lint, tests and build must pass, and 
 
 ## Updating the owner's folder
 
+`update.bat` waits until nothing listens on port 3000 (start.bat closed; checked with PowerShell
+`Get-NetTCPConnection`, since netstat text is localised) before `npm ci`, because Windows locks
+`next-swc.win32-x64-msvc.node` while the dev server runs (EPERM unlink, Nov 2026). A finished install writes
+`node_modules\.radstrat-ok`; start.bat reinstalls when it is missing. Keep update.bat byte-identical up to and including
+the `git checkout` block: cmd keeps reading a running .bat by byte offset, so the old script continues in the new file.
+
 `update.bat` fetches branch `claude/hopeful-edison-tja98v` from GitHub, lists new commits, asks J/N and then
 **force-checks out** that version. If you work locally in this folder, commit and push your changes before the
 owner runs `update.bat`, or tell them not to run it, because it overwrites uncommitted edits.

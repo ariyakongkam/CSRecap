@@ -57,8 +57,26 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+rem radstrat must not be running while it installs: Windows locks its files.
+:waitclosed
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"
+if errorlevel 1 (
+  echo.
+  echo radstrat körs fortfarande i ett annat fönster ^(start.bat^).
+  echo Stäng det fönstret först, sedan trycker du på en tangent här.
+  pause >nul
+  goto waitclosed
+)
 echo Installerar det som behövs...
 call npm ci --no-fund --no-audit
+if errorlevel 1 (
+  echo.
+  echo Installationen gick inte klart. Stäng alla radstrat-fönster och kör update.bat igen.
+  echo Hjälper inte det: starta om datorn och kör update.bat igen.
+  pause
+  exit /b 1
+)
+echo ok> node_modules\.radstrat-ok
 echo.
-echo Klart! Om start.bat redan körs uppdateras sidan i webbläsaren av sig själv. Annars, kör start.bat.
+echo Klart! Kör start.bat för att starta radstrat.
 pause

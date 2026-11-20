@@ -12,14 +12,16 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist node_modules (
-  echo First run: installing what the app needs. This takes a minute or two...
+rem The marker is written after a complete install, so a half-finished one is redone.
+if not exist node_modules\.radstrat-ok (
+  echo Installing what the app needs. This takes a minute or two...
   call npm ci --no-fund --no-audit
   if errorlevel 1 (
-    echo Installing failed. Check your internet connection and try again.
+    echo Installing failed. Close other radstrat windows, check your internet connection and try again.
     pause
     exit /b 1
   )
+  echo ok> node_modules\.radstrat-ok
 )
 
 echo Starting radstrat at http://localhost:3000 - your browser will open in a few seconds.
