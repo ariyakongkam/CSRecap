@@ -36,25 +36,53 @@ export function loadStrat(id: string): Strat | null {
   return parseStrat(readAll()[id]);
 }
 
+/**
+ * Told about every save and delete, so a signed-in player's account can follow along (see cloud.ts).
+ * Writes that come from the account itself (writeFromCloud) don't call it.
+ */
+export interface SyncHook {
+  saved: (strats: Strat[]) => void;
+  deleted: (id: string) => void;
+}
+let hook: SyncHook | null = null;
+export function setSyncHook(h: SyncHook | null): void {
+  hook = h;
+}
+
 /** Saves a strat; false when the browser refused (storage full or blocked). */
 export function saveStrat(strat: Strat): boolean {
   const all = readAll();
-  all[strat.id] = compact({ ...strat, updatedAt: new Date().toISOString() });
-  return writeAll(all);
+  const saved = compact({ ...strat, updatedAt: new Date().toISOString() });
+  all[strat.id] = saved;
+  const ok = writeAll(all);
+  if (ok) hook?.saved([saved]);
+  return ok;
 }
 
 /** Saves several strats in one write (imports); false when the browser refused. */
 export function saveStrats(list: Strat[]): boolean {
   const all = readAll();
   const now = new Date().toISOString();
-  for (const s of list) all[s.id] = compact({ ...s, updatedAt: now });
-  return writeAll(all);
+  const saved = list.map((s) => compact({ ...s, updatedAt: now }));
+  for (const s of saved) all[s.id] = s;
+  const ok = writeAll(all);
+  if (ok) hook?.saved(saved);
+  return ok;
 }
 
 export function deleteStrat(id: string): void {
   const all = readAll();
   delete all[id];
   writeAll(all);
+  hook?.deleted(id);
+}
+
+/** Applies changes that came from the player's account, keeping their own save times. */
+export function writeFromCloud(save: Strat[], remove: string[]): boolean {
+  const all = readAll();
+  for (const s of save) all[s.id] = compact(s);
+  for (const id of remove) delete all[id];
+  return writeAll(all);
 }
 
 // ---------- small UI preferences (last tool, pen colour, open step per strat) ----------

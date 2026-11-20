@@ -11,6 +11,7 @@ const PRODUCT = [
   { href: "/#who", label: "Who it's for" },
   { href: "/#ai", label: "AI Analyze (coming soon)" },
   { href: "/#faq", label: "FAQ" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 /** Support link to Ko-fi: a plain link (no Ko-fi widget), so no third-party script runs on the site. */

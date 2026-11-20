@@ -66,6 +66,34 @@ Before saying something works: type check, lint, tests and build must pass, and 
   ignore. Same content: opens yours. The editor's "Invite" button (`invite.tsx`) offers "Can view" and "Can edit" links.
   Not live: no server. Real-time co-editing would need hosting, accounts and a database.
 
+## Accounts: Steam sign-in and cloud saves (built Nov 2026, switched on once the D1 database exists)
+
+- Chosen over Google for GDPR data minimisation: Steam OpenID gives only the SteamID64 (no email, no name).
+- **Server:** `worker/index.ts` (Cloudflare Worker; `wrangler.jsonc` → `main`, `run_worker_first: ["/api/*"]`, all
+  other paths are the static `out/`). Routes: `GET /api/me`, `GET /api/auth/steam` → Steam, `GET
+  /api/auth/steam/callback`, `POST /api/auth/logout`, `GET /api/strats` (strats + deletion markers), `PUT|DELETE
+  /api/strats/:id`, `GET /api/account/export`, `DELETE /api/account`. Without the `DB` binding everything answers
+  `{enabled:false}` and the UI hides sign-in. Tables are created on first use (`ensureSchema`).
+- **Security:** Steam answer verified with `check_authentication` plus return_to, endpoint, SteamID format, signed
+  fields (`worker/steam.ts`, tests in `worker/steam.test.ts`); a one-time `state` cookie binds the login to the browser;
+  each Steam nonce is used once; session cookie `__Host-rs` (HttpOnly, Secure, SameSite=Lax, 30 days) holds a random
+  token and the DB only stores its SHA-256; non-GET requests must carry our own Origin; strats are validated with
+  `parseStrat` on the server; limits 256 KB per strat, 1000 strats per account.
+- **Client:** `src/lib/strat/cloud.ts` (local-first: localStorage stays the working copy; `syncNow` = newest
+  `updatedAt` wins, deletion markers remove strats on other PCs, local-only strats upload; `startAutoSync` sends every
+  save/delete via `setSyncHook` in storage.ts, bundled per strat for 1.2 s; `writeFromCloud` applies remote changes
+  without re-sending). `src/components/account.tsx`: `useCloudSync` (sync on open and when the tab regains focus after
+  30 s) and `AccountButton` (Sign in with Steam / Account dialog: Sync now, Download my data, Sign out with "also remove
+  from this browser", Delete my account). Shown on `/app` and in the editor header (md and up).
+- **Privacy page** `/privacy` (in footer and sitemap). `PRIVACY_CONTACT` in `src/lib/links.ts` must be filled in by
+  the owner before switching sign-in on.
+- **To switch on:** the owner creates a D1 database named `radstrat` (EU jurisdiction / Western Europe) in the
+  Cloudflare dashboard and sends its database ID; add `"d1_databases": [{ "binding": "DB", "database_name": "radstrat",
+  "database_id": "…" }]` to wrangler.jsonc and push. Then update the FAQ/landing copy ("no accounts" is no longer
+  true; sign-in is optional).
+- Tested locally with `wrangler dev` + a local D1 (two browser contexts sharing a session = two PCs). Real Steam login
+  can only be tried on the live site.
+
 ## Code map
 
 - `src/lib/strat/types.ts`: data model. A `Strat` (version 2) has `steps`; each step has `objects`:
@@ -156,8 +184,8 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - WCAG 2.2 AA matters to the owner. Every page has one `<main>`; axe-core reports zero violations (Nov 2026).
   The board is keyboard usable (`role="application"`, `onKeyDown` in board.tsx): arrows move a cursor or the
   selected item, Enter places with the current tool or selects, Delete removes, Escape deselects. Keep that working.
-- Privacy: strats never leave the user's browser (localStorage + `#` share links, no server, no analytics). Steam
-  login with cloud saves is postponed until the site is deployed (needs hosting + a database such as Supabase).
+- Privacy: without an account, strats never leave the user's browser (localStorage + `#` share links, no analytics).
+  With optional Steam sign-in they are also stored in Cloudflare D1 (EU); see the Accounts section.
 
 ## Security (checked Nov 2026, keep it this way)
 

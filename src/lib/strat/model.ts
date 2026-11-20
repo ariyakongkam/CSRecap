@@ -22,7 +22,7 @@ import {
 } from "./types";
 
 export function newId(): string {
-  const c = globalThis.crypto;
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c?.randomUUID) return c.randomUUID().replace(/-/g, "").slice(0, 12);
   return Math.random().toString(36).slice(2, 14);
 }

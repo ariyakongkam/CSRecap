@@ -3,6 +3,7 @@
 import { CircleHelp, Download, Plus, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { AccountButton, useCloudSync } from "@/components/account";
 import { ImportDialog } from "@/components/import-dialog";
 import { OpenFileButton, SharePlaybookDialog, downloadBundle } from "@/components/playbook-tools";
 import { StratCard } from "@/components/strat-card";
@@ -50,7 +51,15 @@ export function Library() {
     return [...byBook.entries()].sort(([a], [b]) => (!a ? 1 : !b ? -1 : a.localeCompare(b)));
   }, [strats, query, mapFilter, sideFilter, typeFilter, bookFilter]);
 
+  const account = useCloudSync(() => setStrats(listStrats()));
+
   useEffect(() => {
+    // Back from Steam sign-in (or account deletion): say what happened.
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("signedin")) setImportMessage("Signed in with Steam. Your strats are now saved to your account too, and show up on every PC where you sign in.");
+    if (q.get("signin") === "failed") setImportMessage("Signing in with Steam didn't work. Please try again.");
+    if (q.get("deleted")) setImportMessage("Your account and the strats saved in it were deleted from radstrat's server.");
+    if (q.size) window.history.replaceState(null, "", "/app");
     setStrats(listStrats());
     // First visit in this browser: introduce the app.
     if (!loadPref("welcomed", false, (v): v is boolean => typeof v === "boolean")) setWelcome(true);
@@ -74,6 +83,7 @@ export function Library() {
       <header className="flex items-center justify-between py-5">
         <Logo />
         <div className="flex items-center gap-1">
+          <AccountButton account={account} compact onChanged={() => setStrats(listStrats())} />
           <a href="#new" className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-muted hover:text-text">
             New strat
           </a>

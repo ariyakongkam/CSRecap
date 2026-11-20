@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, Check, Eraser, Redo2, Save, Sparkles, Undo2, UserPlus } from "lucide-react";
+import { AccountButton, useCloudSync } from "@/components/account";
 import { AiAnalyzePoints } from "@/components/ai-analyze";
 import { InviteDialog } from "@/components/invite";
 import Link from "next/link";
@@ -73,6 +74,7 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mapPicker, setMapPicker] = useState(false);
   const [aiInfo, setAiInfo] = useState(false);
+  const account = useCloudSync();
   // Playbook names used by the other saved strats, suggested in the Playbook field.
   const [playbooks, setPlaybooks] = useState<string[]>([]);
   useEffect(() => {
@@ -303,6 +305,9 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
           <button type="button" className="btn btn-icon" onClick={() => setHistory(H.redo(history))} disabled={history.future.length === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
             <Redo2 className="size-4" />
           </button>
+        </div>
+        <div className="max-md:hidden">
+          <AccountButton account={account} compact />
         </div>
         <button
           type="button"

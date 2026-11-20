@@ -476,3 +476,27 @@ describe("spawns", () => {
     expect(fiveSpawns("train", "T")).toBeNull();
   });
 });
+
+describe("syncing with the account", () => {
+  const at = (id: string, updatedAt: string, name = id) => ({ ...createStrat("mirage", "T", name), id, updatedAt });
+  it("downloads newer and missing strats, uploads newer local ones and local-only ones", async () => {
+    const { planSync } = await import("./cloud");
+    const local = [at("a", "2026-11-20T10:00:00Z"), at("b", "2026-11-20T12:00:00Z"), at("only-here", "2026-11-20T09:00:00Z")];
+    const remote = [at("a", "2026-11-20T11:00:00Z"), at("b", "2026-11-20T11:00:00Z"), at("only-there", "2026-11-20T08:00:00Z")];
+    const plan = planSync(local, remote, []);
+    expect(plan.download.map((s) => s.id).sort()).toEqual(["a", "only-there"]);
+    expect(plan.upload.map((s) => s.id).sort()).toEqual(["b", "only-here"]);
+    expect(plan.removeLocal).toEqual([]);
+  });
+
+  it("removes strats deleted on another PC, unless they were changed here after that", async () => {
+    const { planSync } = await import("./cloud");
+    const local = [at("gone", "2026-11-20T10:00:00Z"), at("edited-later", "2026-11-20T13:00:00Z")];
+    const plan = planSync(local, [], [
+      { id: "gone", deletedAt: "2026-11-20T11:00:00Z" },
+      { id: "edited-later", deletedAt: "2026-11-20T12:00:00Z" },
+    ]);
+    expect(plan.removeLocal).toEqual(["gone"]);
+    expect(plan.upload.map((s) => s.id)).toEqual(["edited-later"]);
+  });
+});

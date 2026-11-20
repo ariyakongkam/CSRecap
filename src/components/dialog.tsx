@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 /** A modal built on the native <dialog>: focus trap, Escape to close, backdrop click closes. */
 export function Modal({
@@ -18,6 +18,7 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const d = ref.current;
@@ -33,6 +34,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
@@ -44,7 +46,9 @@ export function Modal({
       {open && (
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
-            <h2 className="font-display text-2xl font-semibold">{title}</h2>
+            <h2 id={titleId} className="font-display text-2xl font-semibold">
+              {title}
+            </h2>
             <button type="button" className="btn btn-icon -mt-1 -mr-2 border-transparent bg-transparent" onClick={onClose} aria-label="Close">
               <X className="size-5" />
             </button>

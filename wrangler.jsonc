@@ -1,14 +1,21 @@
-// Cloudflare Workers settings: radstrat is a static site, so the Worker only serves the files that
-// `npm run export` builds into out/. Cloudflare's build runs `npm run export`, then `npx wrangler deploy`.
+// Cloudflare Workers settings. Cloudflare's build runs `npm run export` (the static site, into out/), then
+// `npx wrangler deploy`. Pages are served straight from out/; only /api/* runs worker/index.ts (Steam sign-in
+// and saving strats to an account). Without the D1 database below, /api answers "not enabled" and the site
+// works exactly as before.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "radstrat",
+  "main": "worker/index.ts",
   "compatibility_date": "2025-11-01",
   "assets": {
     "directory": "./out",
     // /app serves app.html, /edit serves edit.html …
     "html_handling": "auto-trailing-slash",
     // unknown paths get the site's own 404 page
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // the account API is the only thing that runs code
+    "run_worker_first": ["/api/*"]
   }
+  // Steam sign-in: add the database here once it exists (Cloudflare dashboard → D1, location EU):
+  // "d1_databases": [{ "binding": "DB", "database_name": "radstrat", "database_id": "..." }]
 }
