@@ -6,6 +6,7 @@ import { MapLayer } from "@/components/map-layer";
 import { MarkerGlyph } from "@/components/marker-icons";
 import { loadSightMask, type SightMask } from "@/lib/strat/sight";
 import { MAPS } from "@/lib/maps";
+import { SPAWNS } from "@/lib/maps/spawns";
 import { clamp, pathData, simplify } from "@/lib/strat/geometry";
 import { enemyOf, newId, nextPlayerNumber, normAngle, removeObject } from "@/lib/strat/model";
 import { nextRouteStart, playerEndPosition, playerPositionAt, visibilityAt, walkDuration } from "@/lib/strat/timeline";
@@ -455,6 +456,16 @@ export function Board({
             o.id === g.id ? { ...v, player: owner.id, x: owner.x, y: owner.y, angle: normAngle(angleTo(owner, g.tip)), length: Math.round(length) } : o,
           ),
         );
+      }
+      return;
+    }
+    if (g.mode === "move") {
+      // A player dropped next to a real spawn spot snaps onto it, for exact lineups from spawn.
+      const spots = g.moved && g.orig.kind === "player" ? SPAWNS[scene.map]?.[g.orig.team] : undefined;
+      const now = spots && objects.find((o) => o.id === g.id);
+      if (spots && now && now.kind === "player" && g.orig.kind === "player") {
+        const near = spots.find((s) => Math.hypot(s.x - now.x, s.y - now.y) < 12);
+        if (near) onLive?.(objects.map((o) => moved(o, g.orig, near.x - (g.orig as PlacedPlayer).x, near.y - (g.orig as PlacedPlayer).y)));
       }
       return;
     }

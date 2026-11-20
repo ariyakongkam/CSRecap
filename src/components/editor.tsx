@@ -16,9 +16,10 @@ import { PhaseBar, phaseDuration } from "@/components/phase-bar";
 import { MarkerStrip } from "@/components/tool-options";
 import { Toolbar, TOOL_KEYS, toolHint } from "@/components/toolbar";
 import { MAPS, MAP_IDS } from "@/lib/maps";
+import { fiveSpawns } from "@/lib/maps/spawns";
 import * as H from "@/lib/strat/history";
 import { continueStep, move, removeObject, teamAtSpawn } from "@/lib/strat/model";
-import { deleteStrat, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
+import { deleteStrat, listStrats, loadPref, loadStrat, savePref, saveStrat } from "@/lib/strat/storage";
 import { stratDuration } from "@/lib/strat/timeline";
 import { DEFAULT_PEN, MARKER_TYPES, isHexColor, sceneOf, type MarkerType, type BoardObject, type DrawShape, type PenSettings, type Strat } from "@/lib/strat/types";
 
@@ -72,6 +73,11 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mapPicker, setMapPicker] = useState(false);
   const [aiInfo, setAiInfo] = useState(false);
+  // Playbook names used by the other saved strats, suggested in the Playbook field.
+  const [playbooks, setPlaybooks] = useState<string[]>([]);
+  useEffect(() => {
+    setPlaybooks([...new Set(listStrats().map((s) => s.playbook ?? "").filter(Boolean))].sort((a, b) => a.localeCompare(b)));
+  }, []);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [callouts, setCallouts] = useState(false);
 
@@ -144,12 +150,17 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
   function placeTeam() {
     if (!strat || !step) return;
     const spawn = MAPS[strat.map].areas.find((a) => a.spawn === strat.side) ?? null;
-    const added = teamAtSpawn(sceneOf(strat, step), spawn);
+    const spots = fiveSpawns(strat.map, strat.side);
+    const added = teamAtSpawn(sceneOf(strat, step), spawn, spots);
     if (added.length === 0) return setNotice("All five teammates are already on the board.");
     commitObjects([...step.objects, ...added]);
     setSelectedId(null);
     setTool("select");
-    setNotice(`${added.length === 5 ? "All five" : `${added.length} more`} placed at ${strat.side} spawn. Drag them into position or draw their routes.`);
+    setNotice(
+      spots
+        ? `${added.length === 5 ? "All five" : `${added.length} more`} placed on real ${strat.side} spawn spots. Turn on Callouts to see every spawn; players snap onto them.`
+        : `${added.length === 5 ? "All five" : `${added.length} more`} placed at ${strat.side} spawn. Drag them into position or draw their routes.`,
+    );
   }
 
   // Typing in a field is one undo step per burst, not one per key.
@@ -437,6 +448,7 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
             onDeleteStrat={() => setConfirm("delete")}
             onPlaceTeam={placeTeam}
             stepIndex={current}
+            playbooks={playbooks}
             relocating={relocate}
             onRelocate={setRelocate}
           />
@@ -471,7 +483,7 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
             />
           ))}
         </div>
-        <p className="mt-4 text-xs text-faint">Radar overviews and screenshots © Valve Corporation.</p>
+        <p className="mt-4 text-xs text-faint">Radar overviews and screenshots © Valve Corporation. Spawn data by setpos.gg (CC BY 4.0).</p>
       </Modal>
 
       <ConfirmDialog

@@ -43,6 +43,14 @@ export function saveStrat(strat: Strat): boolean {
   return writeAll(all);
 }
 
+/** Saves several strats in one write (imports); false when the browser refused. */
+export function saveStrats(list: Strat[]): boolean {
+  const all = readAll();
+  const now = new Date().toISOString();
+  for (const s of list) all[s.id] = compact({ ...s, updatedAt: now });
+  return writeAll(all);
+}
+
 export function deleteStrat(id: string): void {
   const all = readAll();
   delete all[id];

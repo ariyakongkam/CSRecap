@@ -422,3 +422,57 @@ describe("invites", () => {
     expect(backup.name).toBe("Exec (your earlier version)");
   });
 });
+
+describe("playbooks and backups", () => {
+  it("round-trips a playbook through a link and a file, keeping playbook and type", async () => {
+    const { playbookUrl, bundleFromHash, bundleToFile, bundleFromFile } = await import("./bundle");
+    const { createStrat } = await import("./model");
+    const a = { ...createStrat("mirage", "T", "A exec"), playbook: "Mirage T", type: "execute" as const };
+    const b = { ...createStrat("mirage", "T", "B split"), playbook: "Mirage T", type: "split" as const };
+    const bundle = { kind: "playbook" as const, name: "Mirage T", strats: [a, b] };
+    const fromLink = bundleFromHash(playbookUrl("https://x.test", bundle).split("#")[1])!;
+    expect(fromLink.name).toBe("Mirage T");
+    expect(fromLink.strats.map((s) => [s.id, s.playbook, s.type])).toEqual([
+      [a.id, "Mirage T", "execute"],
+      [b.id, "Mirage T", "split"],
+    ]);
+    expect(bundleFromFile(bundleToFile(bundle))!.strats).toHaveLength(2);
+  });
+
+  it("refuses files that are not radstrat bundles and drops broken strats", async () => {
+    const { bundleFromFile, parseBundle } = await import("./bundle");
+    expect(bundleFromFile("not json")).toBeNull();
+    expect(bundleFromFile(JSON.stringify({ app: "other", strats: [] }))).toBeNull();
+    const b = parseBundle({ app: "radstrat", kind: "backup", strats: [{ nope: 1 }, { v: 2, id: "x", name: "ok", map: "mirage", side: "T", steps: [] }] });
+    expect(b?.strats.map((s) => s.id)).toEqual(["x"]);
+    expect(parseBundle({ app: "radstrat", strats: [{ v: 2, id: "y", map: "mirage", side: "T", steps: [], type: "hack", playbook: 5 }] })!.strats[0]).not.toHaveProperty("type");
+  });
+
+  it("plans a merge: adds new strats, updates changed ones (keeping a copy) and skips identical ones", async () => {
+    const { planMerge, stratsToSave } = await import("./bundle");
+    const { createStrat } = await import("./model");
+    const same = createStrat("mirage", "T", "Same");
+    const changedMine = createStrat("dust2", "CT", "Old name");
+    const changedTheirs = { ...changedMine, name: "New name" };
+    const fresh = createStrat("inferno", "T", "Fresh");
+    const mine = new Map([[same.id, same], [changedMine.id, changedMine]]);
+    const plan = planMerge([same, changedTheirs, fresh], (id) => mine.get(id) ?? null);
+    expect(plan.add.map((s) => s.name)).toEqual(["Fresh"]);
+    expect(plan.same.map((s) => s.name)).toEqual(["Same"]);
+    expect(plan.update.map((u) => u.incoming.name)).toEqual(["New name"]);
+    const saved = stratsToSave(plan);
+    expect(saved.map((s) => s.name)).toEqual(["Fresh", "Old name (your earlier version)", "New name"]);
+    expect(saved[1].id).not.toBe(changedMine.id);
+  });
+});
+
+describe("spawns", () => {
+  it("places the team on five real spawn spots when the map has spawn data", async () => {
+    const { fiveSpawns } = await import("../maps/spawns");
+    const spots = fiveSpawns("mirage", "T")!;
+    expect(spots).toHaveLength(5);
+    const team = teamAtSpawn({ map: "mirage", side: "T", objects: [] }, null, spots);
+    expect(team.map((p) => [p.n, p.x, p.y])).toEqual(spots.map((s, i) => [i + 1, s.x, s.y]));
+    expect(fiveSpawns("train", "T")).toBeNull();
+  });
+});

@@ -46,6 +46,20 @@ Before saying something works: type check, lint, tests and build must pass, and 
   link in Ko-fi coral (`.btn-kofi`), never Ko-fi's widget script (privacy promise). Also in the FAQ.
 - `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
+- **Playbooks, search, backups** (Nov 2026): a strat has optional `playbook` (folder name, max 40) and `type`
+  (`STRAT_TYPES`: default, execute, split, retake, setup, anti-eco, pistol), set in the strat panel (playbook field
+  suggests existing names). `/app` groups strats by playbook (A–Z, "Not in a playbook" last) with search and
+  map/side/type/playbook filters (`library.tsx`, `strat-card.tsx`). "Share playbook" (`playbook-tools.tsx`) gives a
+  `/playbook#…` link (`playbook-view.tsx`: view each strat, "Save all to my strats") or a file. "Save backup" downloads
+  all strats as JSON; "Open file" imports a backup or playbook file (`import-dialog.tsx`). One format and merge for all
+  of them (`src/lib/strat/bundle.ts`): new strats added, changed ones updated with the old version kept via
+  `backupCopy` (which drops the playbook, so it is not re-shared), identical ones skipped. Links over ~2000 chars may
+  be cut by Discord: the dialog then points to the file.
+- **Real spawns** (`src/lib/maps/spawns.ts`): every competitive CS2 spawn for Mirage, Dust II, Inferno, Nuke, Ancient
+  and Anubis, from setpos.gg (CC BY 4.0, credit "Spawn data by setpos.gg" in the footer and map picker), converted with
+  each radar's pos_x/pos_y/scale and checked to land in the spawn zones. "Place all five at spawn" uses five spread
+  spawns (`fiveSpawns`); Train and Overpass fall back to the old spread. With "Callouts" on, every spawn shows as a
+  numbered dot; a dragged player dropped within 12 units of a spawn of its team snaps onto it.
 - `/edit?id=…`: the planner. `/view#…`: read-only shared strat (whole strat compressed in the URL fragment).
 - `/join#…`: an edit invite (`inviteUrl`, same strat id). New strat: saved and opened (`/edit?id=…&from=invite`).
   Already have it: choose "Update mine with their changes" (old version kept via `backupCopy`), "Keep both" or

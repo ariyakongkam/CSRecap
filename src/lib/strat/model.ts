@@ -4,12 +4,14 @@ import {
   CONE_DEGREES,
   CONE_LENGTH,
   MARKER_TYPES,
+  STRAT_TYPES,
   STRAT_VERSION,
   isHexColor,
   type BoardObject,
   type ConeWidth,
   type DrawShape,
   type MarkerType,
+  type StratType,
   type PlacedPlayer,
   type Pt,
   type Scene,
@@ -345,6 +347,8 @@ export function parseStrat(v: unknown): Strat | null {
     call: str(o.call, 300),
     notes: str(o.notes, 2000),
     steps,
+    ...(str(o.playbook, 40).trim() ? { playbook: str(o.playbook, 40).trim() } : {}),
+    ...(STRAT_TYPES.includes(o.type as StratType) ? { type: o.type as StratType } : {}),
     createdAt: str(o.createdAt, 40) || now,
     updatedAt: str(o.updatedAt, 40) || now,
   };
@@ -381,7 +385,12 @@ export function compact(strat: Strat): Strat {
  * The rest of the team, standing in their spawn: one player for each free number,
  * spread out so the tokens and role labels don't overlap. On a map with no spawn, the middle.
  */
-export function teamAtSpawn(scene: Scene, spawn: { x: number; y: number; w: number; h: number } | null): PlacedPlayer[] {
+export function teamAtSpawn(
+  scene: Scene,
+  spawn: { x: number; y: number; w: number; h: number } | null,
+  /** Real spawn spots for players 1–5 (from the map's spawn data), used instead of the spread when given. */
+  spots?: Pt[] | null,
+): PlacedPlayer[] {
   const used = new Set(scene.objects.filter((o): o is PlacedPlayer => o.kind === "player" && o.team === scene.side).map((o) => o.n));
   const c = spawn ? { x: spawn.x + spawn.w / 2, y: spawn.y + spawn.h / 2 } : { x: 500, y: 500 };
   const tall = spawn ? spawn.h > spawn.w : false;
@@ -389,6 +398,10 @@ export function teamAtSpawn(scene: Scene, spawn: { x: number; y: number; w: numb
   const out: PlacedPlayer[] = [];
   for (let n = 1; n <= 5; n++) {
     if (used.has(n)) continue;
+    if (spots && spots[n - 1]) {
+      out.push({ id: newId(), kind: "player", team: scene.side, n, role: "", x: spots[n - 1].x, y: spots[n - 1].y });
+      continue;
+    }
     const i = spread[n - 1];
     const along = i * 42;
     const across = n % 2 === 0 ? 26 : -26;
@@ -407,5 +420,8 @@ export function sameContent(a: Strat, b: Strat): boolean {
 
 /** A copy of your version, kept before an invite link replaces it. */
 export function backupCopy(strat: Strat): Strat {
-  return { ...duplicateStrat(strat), name: `${strat.name} (your earlier version)`.slice(0, 80) };
+  // Out of its playbook, so sharing the playbook again doesn't send the old copy along.
+  const { playbook: _playbook, ...rest } = duplicateStrat(strat);
+  void _playbook;
+  return { ...rest, name: `${strat.name} (your earlier version)`.slice(0, 80) };
 }

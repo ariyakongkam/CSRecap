@@ -63,7 +63,14 @@ export function SiteFooter() {
           <p>
             © 2026 {APP_NAME}. Made for the CS2 community.
           </p>
-          <p>Not affiliated with Valve. Map radar images are © Valve Corporation.</p>
+          <p>
+            Not affiliated with Valve. Map radar images are © Valve Corporation. Spawn data by{" "}
+            <a href="https://setpos.gg" target="_blank" rel="noopener noreferrer" className="link-slide text-muted">
+              setpos.gg
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            .
+          </p>
         </div>
       </div>
     </footer>

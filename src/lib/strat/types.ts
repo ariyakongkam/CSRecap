@@ -151,9 +151,27 @@ export interface Strat {
   /** Free notes: abort call, fallback, variations. */
   notes: string;
   steps: Step[];
+  /** The playbook (folder) it belongs to, e.g. "Mirage T". Empty or missing = no playbook. */
+  playbook?: string;
+  /** What kind of strat it is, for filtering. */
+  type?: StratType;
   createdAt: string;
   updatedAt: string;
 }
+
+export type StratType = "default" | "execute" | "split" | "retake" | "setup" | "anti-eco" | "pistol";
+
+export const STRAT_TYPES: StratType[] = ["default", "execute", "split", "retake", "setup", "anti-eco", "pistol"];
+
+export const STRAT_TYPE_LABEL: Record<StratType, string> = {
+  default: "Default",
+  execute: "Execute",
+  split: "Split",
+  retake: "Retake",
+  setup: "Setup",
+  "anti-eco": "Anti-eco",
+  pistol: "Pistol round",
+};
 
 /** How long each grenade stays on the board during playback, in seconds. */
 export const UTILITY_DURATION: Record<UtilityType, number> = {

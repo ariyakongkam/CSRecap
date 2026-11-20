@@ -39,7 +39,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Where are my strats saved?",
-    a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself.",
+    a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself. Use Save backup on your strats page to keep a copy as a file, and Open file to bring it back.",
   },
   {
     q: `How can I support ${APP_NAME}?`,

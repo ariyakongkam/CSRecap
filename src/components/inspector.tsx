@@ -9,11 +9,14 @@ import type { Tool } from "@/components/board";
 import { ConeControls, MarkerControls, PenControls } from "@/components/tool-options";
 import {
   CONE_LABEL,
+  STRAT_TYPES,
+  STRAT_TYPE_LABEL,
   MARKER_LABEL,
   UTILITY_LABEL,
   type BoardObject,
   type LineupObject,
   type MarkerType,
+  type StratType,
   type PenSettings,
   type PlacedPlayer,
   type Scene,
@@ -44,6 +47,8 @@ interface Props {
   onPlaceTeam: () => void;
   /** The phase being edited (index into strat.steps). */
   stepIndex: number;
+  /** Names of the playbooks already in use, suggested in the Playbook field. */
+  playbooks: string[];
   /** "Move to…": the id waiting for a click on the board, if any. */
   relocating: string | null;
   onRelocate: (id: string | null) => void;
@@ -88,7 +93,7 @@ function NumberField({
   );
 }
 
-export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, onPlaceTeam, stepIndex, relocating, onRelocate }: Props) {
+export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect, onPickMap, tool, pen, onPen, marker, onMarker, onDeleteStrat, onPlaceTeam, stepIndex, playbooks, relocating, onRelocate }: Props) {
   const update = (o: BoardObject) => onObjects(scene.objects.map((x) => (x.id === o.id ? o : x)));
   const map = MAPS[strat.map];
 
@@ -295,6 +300,39 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
         <span className="label">Name</span>
         <input className="field" value={strat.name} maxLength={80} onChange={(e) => onStrat({ ...strat, name: e.target.value })} />
       </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="label">Playbook</span>
+          <input
+            className="field"
+            list="playbook-names"
+            value={strat.playbook ?? ""}
+            maxLength={40}
+            placeholder="e.g. Mirage T"
+            onChange={(e) => onStrat({ ...strat, playbook: e.target.value })}
+          />
+          <datalist id="playbook-names">
+            {playbooks.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
+        </label>
+        <label className="block">
+          <span className="label">Type</span>
+          <select
+            className="field"
+            value={strat.type ?? ""}
+            onChange={(e) => onStrat({ ...strat, type: (e.target.value || undefined) as StratType | undefined })}
+          >
+            <option value="">No type</option>
+            {STRAT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {STRAT_TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <span className="label">Map</span>
