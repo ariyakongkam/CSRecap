@@ -1,4 +1,4 @@
-import type { MapDef } from "@/lib/maps";
+import type { Area, MapDef } from "@/lib/maps";
 import { SPAWNS } from "@/lib/maps/spawns";
 
 /**
@@ -20,8 +20,8 @@ export function MapLayer({ map, callouts = false }: { map: MapDef; callouts?: bo
         .map((a) => (
           <text
             key={`${a.id}-letter`}
-            x={a.x + a.w / 2}
-            y={a.y - 8}
+            x={a.letter?.x ?? a.x + a.w / 2}
+            y={a.letter?.y ?? a.y - 8}
             textAnchor="middle"
             fontSize="28"
             fontWeight="700"
@@ -40,8 +40,7 @@ export function MapLayer({ map, callouts = false }: { map: MapDef; callouts?: bo
           .map((a) => (
             <text
               key={`${a.id}-name`}
-              x={a.x + a.w / 2}
-              y={a.y + a.h / 2 + 5}
+              {...labelSpot(map, a)}
               textAnchor="middle"
               fontSize="16"
               fontWeight="600"
@@ -85,4 +84,16 @@ export function MapLayer({ map, callouts = false }: { map: MapDef; callouts?: bo
         ))}
     </g>
   );
+}
+
+/**
+ * Where an area's name goes: its middle, except a spawn with real spawn data, whose name sits just above
+ * the spawn dots so the dots don't cover it.
+ */
+function labelSpot(map: MapDef, a: Area): { x: number; y: number } {
+  const dots = a.spawn ? SPAWNS[map.id]?.[a.spawn] : undefined;
+  if (!dots || dots.length === 0) return { x: a.x + a.w / 2, y: a.y + a.h / 2 + 5 };
+  const top = Math.min(...dots.map((d) => d.y));
+  const xs = dots.map((d) => d.x);
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: top - 12 };
 }

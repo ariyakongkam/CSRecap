@@ -97,7 +97,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   and traced versions were tried and rejected as inaccurate. They are © Valve: fine for now, but a paid launch needs
   Valve's permission or accurate own drawings. Credit stays on the landing page and map picker.
 - Map style follows ValoPlant: plain, bombsite letters only, callout names behind a "Callouts" toggle.
-  Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Nuke is the upper
+  Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Bombsite letters sit just above the
+  orange bombsite outline in each radar (`Area.letter`, checked on all eight maps, Nov 2026); spawn names sit above the
+  spawn dots (`labelSpot` in map-layer.tsx) so the dots never cover them. Nuke is the upper
   level only; Vertigo is missing (two levels).
 - Name is **radstrat** (renamed from csgg in Nov 2026; live at https://radstrat.app). `APP_NAME` in `brand.ts`
   drives titles and copy; the share image `opengraph-image.png` has the logo baked in. **Logo (Nov 2026):** the owner's
