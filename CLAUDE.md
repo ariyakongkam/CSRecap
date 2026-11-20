@@ -14,7 +14,7 @@ asking the owner to repeat themselves.
 
 A free, browser-based **CS2 strat planner / tactics board** (like ValoPlant, but for Counter-Strike 2) for players,
 IGLs, teams, coaches and esports. Plan executes on a 2D map phase by phase, play it back, share it in one link.
-No accounts and no server: strats live in the browser and travel in share links.
+No account needed: strats live in the browser and travel in share links; optional Steam sign-in also saves them to the account (see Accounts).
 
 The repo is `ariyakongkam/csrecap`; this app lives on branch `claude/hopeful-edison-tja98v`. The old CSRecap app
 (FACEIT player reports) is still on `main` and was deliberately removed from this branch.
@@ -88,7 +88,7 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - **Privacy page** `/privacy` (in footer and sitemap). `PRIVACY_CONTACT` in `src/lib/links.ts` must be filled in by
   the owner before switching sign-in on.
 - **Status:** D1 database `radstrat` (id b6ac8f52-8443-4b1d-8e27-62d60989990d) is bound in wrangler.jsonc. The
-  sign-in button stays hidden until `PRIVACY_CONTACT` is set (`AccountButton` checks it).
+  sign-in is ON since Nov 2026: `PRIVACY_CONTACT` = csrecap.support@gmail.com (the owner's support address, shown on /privacy). `AccountButton` hides itself if it is emptied. FAQ, landing and llms.txt say sign-in is optional.
 - **How it was switched on:** the owner creates a D1 database named `radstrat` (EU jurisdiction / Western Europe) in the
   Cloudflare dashboard and sends its database ID; add `"d1_databases": [{ "binding": "DB", "database_name": "radstrat",
   "database_id": "…" }]` to wrangler.jsonc and push. Then update the FAQ/landing copy ("no accounts" is no longer
@@ -169,7 +169,7 @@ Before saying something works: type check, lint, tests and build must pass, and 
   The toolbar wraps on phones instead of scrolling sideways.
   Below `lg`, the marker tool shows a compact icon strip right above the map (`MarkerStrip`).
 - Landing copy targets CS2 players, IGLs, teams, coaches and esports (FACEIT, Premier, ESEA, LAN). Only claim what
-  the app really does: no live collaboration, no accounts, no FACEIT match import (yet).
+  the app really does: no live collaboration, accounts only as optional Steam sign-in, no FACEIT match import (yet).
 - **AI Analyze is "Coming soon" only** (owner's request): upload a demo, AI says what went well/wrong, compared with
   the strat, tips to improve the plan. Shown on the landing page, the strats page (`AiAnalyzeCard`), an "AI Analyze ·
   Soon" button in the editor header (opens a modal) and in the FAQ and llms.txt. Always label it as not available

@@ -3,7 +3,7 @@
 The free CS2 strat planner for players, teams and coaches: plan executes on a 2D map phase by phase, play them back,
 and share them in one link. Live at https://radstrat.app.
 
-- No accounts and no server: strats are saved in the browser (localStorage) and travel inside links (the part after
+- No account needed: strats are saved in the browser (localStorage) and travel inside links (the part after
   `#`, which browsers never send to a server).
 - The site is static files (`npm run export` → `out/`), served by Cloudflare (`wrangler.jsonc`).
 - Project notes, decisions and the code map are in `CLAUDE.md`.

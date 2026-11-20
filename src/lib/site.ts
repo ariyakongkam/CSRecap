@@ -7,7 +7,7 @@ export const SITE_URL = (
 
 export const SITE_TITLE = `${APP_NAME}: free CS2 strat planner for players, teams and coaches`;
 export const SITE_DESCRIPTION =
-  "Plan CS2 executes, retakes and smoke lineups on every Active Duty map, then share the strat with your team in one link. Free tactics board for players, teams, coaches and esports. No sign-up.";
+  "Plan CS2 executes, retakes and smoke lineups on every Active Duty map, then share the strat with your team in one link. Free tactics board for players, teams, coaches and esports. No sign-up needed.";
 
 export const ACTIVE_DUTY = ["Mirage", "Dust II", "Inferno", "Nuke", "Ancient", "Anubis", "Train", "Overpass"];
 
@@ -39,7 +39,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Where are my strats saved?",
-    a: "In your own browser, on your device. Nothing is uploaded: there is no account and no server copy. A share link carries the whole strat inside the link itself. Use Save backup on your strats page to keep a copy as a file, and Open file to bring it back.",
+    a: "In your own browser, on your device. Without an account nothing is uploaded. If you want your strats on more than one PC, you can sign in with Steam (optional): they are then also saved to your account, and radstrat only gets your SteamID, no email or name. A share link carries the whole strat inside the link itself. Use Save backup on your strats page to keep a copy as a file, and Open file to bring it back.",
   },
   {
     q: `How can I support ${APP_NAME}?`,

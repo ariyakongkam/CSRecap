@@ -92,7 +92,7 @@ export default function Landing() {
                   See what it does
                 </a>
               </div>
-              <p className="mt-4 text-sm text-muted">No sign-up. Runs in your browser. Your strats stay on your device.</p>
+              <p className="mt-4 text-sm text-muted">No sign-up needed. Runs in your browser. Sign in with Steam if you want your strats on every PC.</p>
             </div>
             <div className="pt-14 md:pt-0">
               <HeroPreview />
@@ -180,7 +180,7 @@ export default function Landing() {
           <Reveal>
             <LogoMark className="logo-blink mx-auto h-auto w-24 text-white" />
             <h2 className="mt-6 font-display text-4xl font-semibold text-balance sm:text-5xl">Your next round starts with a plan</h2>
-            <p className="mx-auto mt-3 max-w-lg text-lg text-muted">Free, no sign-up. Open the planner and place your five.</p>
+            <p className="mx-auto mt-3 max-w-lg text-lg text-muted">Free, no sign-up needed. Open the planner and place your five.</p>
             <Link href="/app" className="btn btn-primary btn-lg mt-8">
               Start planning for free
               <ArrowRight className="btn-arrow size-5" aria-hidden="true" />
