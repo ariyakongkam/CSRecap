@@ -209,6 +209,16 @@ Before saying something works: type check, lint, tests and build must pass, and 
   Caddy itself has not been run here.
 - After `update.bat`, run `publish.bat` again to put the new version online.
 
+## Backups of the code (owner's request: two backups on the PC, refreshed daily)
+
+- `backup.bat` clones the branch (`git clone --depth 1`) into `%USERPROFILE%\Documents\radstrat-backups\incoming`. When
+  the commit differs from `backup-1-newest`, it rotates: backup-1 → `backup-2-previous`, download → backup-1 (so backup 2
+  is always the version before the newest). It logs to `backup-log.txt`. The first manual run offers a daily Windows task
+  ("radstrat backup", 12:00, StartWhenAvailable) via PowerShell `Register-ScheduledTask`. The task runs a **copy** of the
+  script in the backup folder (`radstrat-backup.bat /quiet`), so `update.bat` can never change what runs by itself.
+  Written for Windows and not run here (no Windows in this environment). Saved strats are not in it: they live in the
+  browser (strats page → "Save backup").
+
 ## Updating the owner's folder
 
 `update.bat` fetches branch `claude/hopeful-edison-tja98v` from GitHub, lists new commits, asks J/N and then
