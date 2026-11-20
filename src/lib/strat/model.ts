@@ -387,7 +387,7 @@ export function compact(strat: Strat): Strat {
  */
 export function teamAtSpawn(
   scene: Scene,
-  spawn: { x: number; y: number; w: number; h: number } | null,
+  spawn: { x: number; y: number; w: number; h: number; spread?: number } | null,
   /** Real spawn spots for players 1–5 (from the map's spawn data), used instead of the spread when given. */
   spots?: Pt[] | null,
 ): PlacedPlayer[] {
@@ -403,7 +403,7 @@ export function teamAtSpawn(
       continue;
     }
     const i = spread[n - 1];
-    const along = i * 42;
+    const along = i * (spawn?.spread ?? 42);
     const across = n % 2 === 0 ? 26 : -26;
     const x = tall ? c.x + across : c.x + along;
     const y = tall ? c.y + along : c.y + across;

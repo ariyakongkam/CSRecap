@@ -95,7 +95,7 @@ export function Welcome({
               </div>
             }
           >
-            Every strat is saved in this browser as you work. Duplicate one to make a variation.
+            Every strat is saved in this browser as you work. Sign in with Steam to have them on every PC.
           </Feature>
         </div>
       </div>

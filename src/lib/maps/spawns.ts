@@ -136,6 +136,9 @@ export const SPAWNS: Partial<Record<MapId, Record<Side, Spawn[]>>> = {
   },
 };
 
+// Nuke's lower level uses the same overview coordinates, so the spawns are the same.
+SPAWNS.nukelower = SPAWNS.nuke;
+
 /** Five spawns spread across the side's spawn area (all of them, when there are five). */
 export function fiveSpawns(map: MapId, side: Side): Spawn[] | null {
   const all = SPAWNS[map]?.[side];

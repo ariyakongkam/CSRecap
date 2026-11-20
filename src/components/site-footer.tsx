@@ -54,9 +54,9 @@ export function SiteFooter() {
         </nav>
         <div>
           <h2 className="font-display text-lg font-semibold">Maps</h2>
-          <p className="mt-3 text-muted">{ACTIVE_DUTY.join(", ")}, plus a blank board.</p>
+          <p className="mt-3 text-muted">{ACTIVE_DUTY.join(", ")} and Cache. Nuke has both levels.</p>
           <h2 className="mt-6 font-display text-lg font-semibold">Privacy</h2>
-          <p className="mt-3 text-muted">No account and no tracking. Your strats stay in your browser and travel in the links you share.</p>
+          <p className="mt-3 text-muted">No tracking. Your strats stay in your browser and travel in the links you share. Sign in with Steam (optional) to have them on every PC.</p>
         </div>
       </div>
       <div className="border-t border-line">

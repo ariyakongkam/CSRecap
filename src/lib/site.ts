@@ -27,7 +27,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Which CS2 maps are supported?",
-    a: `Every Active Duty map: ${ACTIVE_DUTY.join(", ")}, plus a blank board.`,
+    a: `Every Active Duty map (${ACTIVE_DUTY.join(", ")}) plus Cache, on Valve's radar overviews. Nuke has both levels: A (upper) and B (lower).`,
   },
   {
     q: "Do teammates need an account to see a strat?",

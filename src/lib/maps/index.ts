@@ -25,6 +25,8 @@ export interface Area {
   letter?: { x: number; y: number };
   /** Spawn zone, tinted in the team's colour. */
   spawn?: Team;
+  /** Gap between players when "Place all five at spawn" spreads them here (maps without spawn data). Default 42. */
+  spread?: number;
 }
 
 /** A smaller named spot (a box, a corner) shown in a lighter label. */
@@ -47,7 +49,8 @@ export interface MapDef {
   callouts: Callout[];
 }
 
-export type MapId = "mirage" | "dust2" | "inferno" | "nuke" | "ancient" | "anubis" | "train" | "overpass" | "blank";
+/** "nuke" is Nuke's upper level (A site), "nukelower" its lower level (B site). "blank" is only kept so old strats still open. */
+export type MapId = "mirage" | "dust2" | "inferno" | "nuke" | "nukelower" | "ancient" | "anubis" | "train" | "overpass" | "cache" | "blank";
 
 const images = (m: string) => ({ radar: `/maps/${m}-radar.webp`, thumb: `/maps/${m}-thumb.webp`, sight: `/maps/${m}-sight.png` });
 
@@ -141,14 +144,29 @@ export const MAPS: Record<MapId, MapDef> = {
   mirage: MIRAGE,
   dust2: DUST2,
   inferno: { id: "inferno", name: "Inferno", ...images("inferno"), areas: basics({ A: [0.81, 0.69], B: [0.49, 0.22] }, [0.1, 0.67], [0.9, 0.35]), callouts: [] },
-  nuke: { id: "nuke", name: "Nuke (upper)", ...images("nuke"), areas: basics({ A: [0.58, 0.48] }, [0.19, 0.54], [0.82, 0.45], { A: { x: 500, y: 451 } }), callouts: [] },
+  nuke: { id: "nuke", name: "Nuke (A)", ...images("nuke"), areas: basics({ A: [0.58, 0.48] }, [0.19, 0.54], [0.82, 0.45], { A: { x: 500, y: 451 } }), callouts: [] },
+  // Same overview as the upper level, so the spawns line up; the upper level shows greyed out.
+  nukelower: { id: "nukelower", name: "Nuke (B)", ...images("nukelower"), areas: basics({ B: [0.571, 0.539] }, [0.19, 0.54], [0.82, 0.45], { B: { x: 556, y: 494 } }), callouts: [] },
   ancient: { id: "ancient", name: "Ancient", ...images("ancient"), areas: basics({ A: [0.31, 0.25], B: [0.8, 0.4] }, [0.485, 0.87], [0.51, 0.17], { A: { x: 304, y: 232 }, B: { x: 748, y: 381 } }), callouts: [] },
   anubis: { id: "anubis", name: "Anubis", ...images("anubis"), areas: basics({ A: [0.755, 0.245], B: [0.325, 0.49] }, [0.47, 0.905], [0.42, 0.215], { A: { x: 755, y: 191 }, B: { x: 328, y: 452 } }), callouts: [] },
   train: { id: "train", name: "Train", ...images("train"), areas: basics({ A: [0.63, 0.49], B: [0.52, 0.76] }, [0.09, 0.17], [0.86, 0.77]), callouts: [] },
   overpass: { id: "overpass", name: "Overpass", ...images("overpass"), areas: basics({ A: [0.49, 0.18], B: [0.69, 0.32] }, [0.66, 0.93], [0.43, 0.07]), callouts: [] },
+  cache: {
+    id: "cache",
+    name: "Cache",
+    ...images("cache"),
+    // Sites and spawn zones as outlined in the radar (no spawn data for Cache yet, so players are spread in the zones).
+    areas: [
+      ...basics({ A: [0.317, 0.266], B: [0.347, 0.809] }, [0.888, 0.583], [0.09, 0.47], { A: { x: 317, y: 208 }, B: { x: 347, y: 756 } }).filter((a) => !a.spawn),
+      r("t-spawn", "T Spawn", 834, 512, 108, 142, { spawn: "T", spread: 30 }),
+      r("ct-spawn", "CT Spawn", 36, 392, 106, 158, { spawn: "CT", spread: 30 }),
+    ],
+    callouts: [],
+  },
   blank: { id: "blank", name: "Blank board", radar: null, thumb: null, areas: [], callouts: [] },
 };
-export const MAP_IDS = Object.keys(MAPS) as MapId[];
+/** The maps you can pick, in this order. The old blank board is left out (strats made on it still open). */
+export const MAP_IDS: MapId[] = ["mirage", "dust2", "inferno", "nuke", "nukelower", "ancient", "anubis", "train", "overpass", "cache"];
 
 export function isMapId(v: unknown): v is MapId {
   return typeof v === "string" && v in MAPS;

@@ -3,7 +3,7 @@
 import { CircleHelp, Download, Plus, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AccountButton, useCloudSync } from "@/components/account";
+import { AccountButton, StorageNote, useCloudSync } from "@/components/account";
 import { ImportDialog } from "@/components/import-dialog";
 import { OpenFileButton, SharePlaybookDialog, downloadBundle } from "@/components/playbook-tools";
 import { StratCard } from "@/components/strat-card";
@@ -107,49 +107,41 @@ export function Library() {
 
       <section id="new" className="mt-4 scroll-mt-6 rounded-2xl border border-line bg-panel p-5 sm:p-7">
         <h1 className="font-display text-4xl font-semibold">Start a strat</h1>
-        <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-5">
+          <span className="label">Map</span>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {MAP_IDS.map((id) => (
+              <MapCard key={id} id={id} selected={map === id} onClick={() => setMap(id)} />
+            ))}
+          </div>
+        </div>
+        <div className="mt-6 flex flex-wrap items-end gap-4">
           <div>
-            <span className="label">Map</span>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {MAP_IDS.map((id) => (
-                <MapCard key={id} id={id} selected={map === id} onClick={() => setMap(id)} />
+            <span className="label" id="side-label">
+              Side
+            </span>
+            <div className="seg" role="group" aria-labelledby="side-label">
+              {(["T", "CT"] as Side[]).map((s) => (
+                <button key={s} type="button" onClick={() => setSide(s)} aria-pressed={side === s}>
+                  <span className={`mr-2 inline-block size-2.5 rounded-full ${s === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
+                  {s} side
+                </button>
               ))}
             </div>
           </div>
-          <div className="flex flex-col justify-between gap-6">
-            <div>
-              <span className="label" id="side-label">
-                Side
-              </span>
-              <div className="seg" role="group" aria-labelledby="side-label">
-                {(["T", "CT"] as Side[]).map((s) => (
-                  <button key={s} type="button" onClick={() => setSide(s)} aria-pressed={side === s}>
-                    <span className={`mr-2 inline-block size-2.5 rounded-full ${s === "T" ? "bg-team-t" : "bg-team-ct"}`} aria-hidden="true" />
-                    {s} side
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <button
-                type="button"
-                className="btn btn-primary w-full sm:w-auto"
-                onClick={() => open(createStrat(map, side, `${MAPS[map].name} ${side} strat`))}
-              >
-                <Plus className="size-4" /> Create {MAPS[map].name} {side} strat
-              </button>
-              {error && (
-                <p className="mt-2 text-sm text-danger" role="alert">
-                  {error}
-                </p>
-              )}
-            </div>
-          </div>
+          <button
+            type="button"
+            className="btn btn-primary max-sm:w-full"
+            onClick={() => open(createStrat(map, side, `${MAPS[map].name} ${side} strat`))}
+          >
+            <Plus className="size-4" /> Create {MAPS[map].name} {side} strat
+          </button>
         </div>
-      </section>
-
-      <section aria-labelledby="ai" className="mt-6">
-        <AiAnalyzeCard headingId="ai" />
+        {error && (
+          <p className="mt-2 text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
       </section>
 
       <section className="mt-12" aria-labelledby="your-strats">
@@ -158,7 +150,6 @@ export function Library() {
             <h2 id="your-strats" className="font-display text-3xl font-semibold">
               Your strats
             </h2>
-            <p className="mt-1 text-muted">Saved in this browser. Keep a backup file, so a cleared browser never costs you your playbook.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -172,6 +163,9 @@ export function Library() {
             </button>
             <OpenFileButton onBundle={setIncoming} onError={setImportMessage} />
           </div>
+        </div>
+        <div className="mt-3">
+          <StorageNote account={account} />
         </div>
         <p className="mt-2 min-h-6 text-sm text-muted" role="status">
           {importMessage}
@@ -263,6 +257,10 @@ export function Library() {
             </section>
           ))
         )}
+      </section>
+
+      <section aria-labelledby="ai" className="mt-12">
+        <AiAnalyzeCard headingId="ai" />
       </section>
 
       <SharePlaybookDialog bundle={sharing} onClose={() => setSharing(null)} />

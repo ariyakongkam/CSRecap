@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Move, Trash2 } from "lucide-react";
+import { ArrowLeftRight, ExternalLink, Move, Trash2 } from "lucide-react";
 import { MAPS, areaAt } from "@/lib/maps";
 import { round1 } from "@/lib/strat/geometry";
 import { removeObject, safeUrl, youtubeId } from "@/lib/strat/model";
@@ -336,8 +336,10 @@ export function Inspector({ strat, scene, selected, onObjects, onStrat, onSelect
       <div className="grid grid-cols-2 gap-3">
         <div>
           <span className="label">Map</span>
-          <button type="button" className="btn w-full justify-between" onClick={onPickMap}>
-            {map.name} <span className="text-sm text-muted">Change</span>
+          <button type="button" className="btn w-full justify-between" onClick={onPickMap} title="Change map">
+            <span className="min-w-0 truncate">{map.name}</span>
+            <ArrowLeftRight className="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span className="sr-only">: change map</span>
           </button>
         </div>
         <label className="block">

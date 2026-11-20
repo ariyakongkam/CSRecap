@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 N = 512
-MAPS = ["mirage", "dust2", "inferno", "nuke", "ancient", "anubis", "overpass", "train"]
+MAPS = ["mirage", "dust2", "inferno", "nuke", "nukelower", "ancient", "anubis", "overpass", "train", "cache"]
 
 
 def blur(x, r):

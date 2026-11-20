@@ -267,8 +267,10 @@ export function Editor({ id, from = null }: { id: string; from?: string | null }
     save.status === "saving"
       ? "Saving…"
       : save.at
-        ? `Saved at ${save.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} in this browser`
-        : "Saved in this browser";
+        ? `Saved at ${save.at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} ${account?.signedIn ? "to your account" : "in this browser only"}`
+        : account?.signedIn
+          ? "Saved to your account"
+          : "Saved in this browser only";
 
   return (
     <main className="flex min-h-dvh flex-col">

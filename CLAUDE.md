@@ -44,7 +44,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
 - **Footer** (`src/components/site-footer.tsx`, on `/`, `/app` and `/view`): logo, tagline, Ko-fi button, links,
   maps, privacy line, Valve credit. **Ko-fi:** https://ko-fi.com/meowbuh (`KOFI_URL` in `src/lib/links.ts`), a plain
   link in Ko-fi coral (`.btn-kofi`), never Ko-fi's widget script (privacy promise). Also in the FAQ.
-- `/app`: start a strat (map cards with blurred screenshots, side) and the list of saved strats. First visit shows
+- `/app`: start a strat (map cards with blurred screenshots in 5 columns, then side + Create), then "Your strats" with a
+  `StorageNote` (account.tsx: "Only saved in this browser" + Sign in with Steam, or "Saved to your Steam account"), then
+  the AI Analyze card. The editor's save status says "in this browser only" or "to your account". First visit shows
   a welcome popup (`src/components/welcome.tsx`), reopened with the ? button.
 - **Playbooks, search, backups** (Nov 2026): a strat has optional `playbook` (folder name, max 40) and `type`
   (`STRAT_TYPES`: default, execute, split, retake, setup, anti-eco, pistol), set in the strat panel (playbook field
@@ -127,10 +129,14 @@ Before saying something works: type check, lint, tests and build must pass, and 
   and traced versions were tried and rejected as inaccurate. They are © Valve: fine for now, but a paid launch needs
   Valve's permission or accurate own drawings. Credit stays on the landing page and map picker.
 - Map style follows ValoPlant: plain, bombsite letters only, callout names behind a "Callouts" toggle.
-  Full callouts exist for Mirage and Dust II; the other six maps have sites and spawns only. Bombsite letters sit just above the
+  Full callouts exist for Mirage and Dust II; the other maps have sites and spawns only.
+  **Maps (Nov 2026):** Mirage, Dust II, Inferno, Nuke (A) = upper (`nuke`), Nuke (B) = lower (`nukelower`, same overview
+  coordinates, so spawns and positions carry over when switching), Ancient, Anubis, Train, Overpass, Cache (radar and
+  screenshot from github.com/MurkyYT/cs2-map-icons; sites/spawn zones measured from the radar's outlines; no spawn data,
+  so the spread uses `Area.spread`). `MAP_IDS` is the picker list; the **blank board was removed** from it on the owner's
+  request but `blank` stays in `MAPS`, so old strats on it still open. Bombsite letters sit just above the
   orange bombsite outline in each radar (`Area.letter`, checked on all eight maps, Nov 2026); spawn names sit above the
-  spawn dots (`labelSpot` in map-layer.tsx) so the dots never cover them. Nuke is the upper
-  level only; Vertigo is missing (two levels).
+  spawn dots (`labelSpot` in map-layer.tsx) so the dots never cover them. Vertigo is missing (two levels).
 - Name is **radstrat** (renamed from csgg in Nov 2026; live at https://radstrat.app). `APP_NAME` in `brand.ts`
   drives titles and copy; the share image `opengraph-image.png` has the logo baked in. **Logo (Nov 2026):** the owner's
   artwork, a white cat head with big eyes + hand-drawn "RAD STRAT" lettering, traced to vector paths in
@@ -265,7 +271,7 @@ owner runs `update.bat`, or tell them not to run it, because it overwrites uncom
 
 ## Not built yet / ideas
 
-- Full callouts for the remaining maps; Nuke lower level and Vertigo.
+- Full callouts for the remaining maps; Vertigo; real spawn data for Cache, Train and Overpass.
 - Team workspaces, real-time co-editing, comments (would need a backend and accounts).
 - The idea with the most product value from the research: compare a planned strat with what the team actually
   did, from their FACEIT demos ("plan vs. reality"). Needs FACEIT demo access to be confirmed first.

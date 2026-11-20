@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CloudOff, Download, LogIn, LogOut, RefreshCw, Trash2, UserRound } from "lucide-react";
+import { Check, Cloud, CloudOff, Download, HardDrive, LogIn, LogOut, RefreshCw, Trash2, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/dialog";
@@ -43,6 +43,45 @@ export function useCloudSync(onChanged?: () => void): Account | null {
   return account;
 }
 
+/** Sign-in is offered: the server side exists and the privacy page names a contact (GDPR). */
+export function canSignIn(account: Account | null): boolean {
+  return !!account?.enabled && !!PRIVACY_CONTACT;
+}
+
+/**
+ * Where the strats are kept, said plainly: only in this browser, or also in the Steam account.
+ * Signed out, it offers Steam sign-in so the strats can be opened on any PC.
+ */
+export function StorageNote({ account }: { account: Account | null }) {
+  if (account?.signedIn) {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+        <Cloud className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
+        <p className="text-sm text-muted">
+          <strong className="font-semibold text-text">Saved to your Steam account.</strong> Your strats are in this browser and in your account, so
+          they show up on every PC where you sign in with Steam.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-panel px-4 py-3">
+      <HardDrive className="size-5 shrink-0 text-muted" aria-hidden="true" />
+      <p className="min-w-0 flex-1 basis-64 text-sm text-muted">
+        <strong className="font-semibold text-text">Only saved in this browser.</strong>{" "}
+        {canSignIn(account)
+          ? "Your strats are on this PC, in this browser. Sign in with Steam to open them on any PC, or keep a backup file."
+          : "Your strats are on this PC, in this browser. Keep a backup file, so a cleared browser never costs you your playbook."}
+      </p>
+      {canSignIn(account) && (
+        <a href="/api/auth/steam" className="btn shrink-0">
+          <LogIn className="size-4" aria-hidden="true" /> Sign in with Steam
+        </a>
+      )}
+    </div>
+  );
+}
+
 const STATUS_TEXT: Record<SyncStatus, string> = {
   off: "Not syncing",
   syncing: "Saving to your account…",
@@ -63,7 +102,7 @@ export function AccountButton({ account, compact = false, onChanged }: { account
   useEffect(() => onSyncStatus(setStatus), []);
 
   // Sign-in only appears once the privacy page names a contact (GDPR) and the server side exists.
-  if (!account?.enabled || !PRIVACY_CONTACT) return null;
+  if (!account || !canSignIn(account)) return null;
   if (!account.signedIn) {
     return (
       <a href="/api/auth/steam" className="btn" title="Save your strats to your Steam account, so they're on every PC">

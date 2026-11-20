@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: <MapIcon className="size-6" />,
     title: "Every Active Duty map",
-    text: `Plan on ${ACTIVE_DUTY.join(", ")}. Place your five, the enemy setup and where everyone holds.`,
+    text: `Plan on ${ACTIVE_DUTY.join(", ")} and Cache. Place your five, the enemy setup and where everyone holds.`,
   },
   {
     icon: <Layers className="size-6" />,
