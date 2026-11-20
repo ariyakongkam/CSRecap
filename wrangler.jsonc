@@ -15,7 +15,7 @@
     "not_found_handling": "404-page",
     // the account API is the only thing that runs code
     "run_worker_first": ["/api/*"]
-  }
-  // Steam sign-in: add the database here once it exists (Cloudflare dashboard → D1, location EU):
-  // "d1_databases": [{ "binding": "DB", "database_name": "radstrat", "database_id": "..." }]
+  },
+  // Steam sign-in: strats of signed-in players (D1, created in the EU by the owner)
+  "d1_databases": [{ "binding": "DB", "database_name": "radstrat", "database_id": "b6ac8f52-8443-4b1d-8e27-62d60989990d" }]
 }

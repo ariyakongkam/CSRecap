@@ -87,7 +87,9 @@ Before saying something works: type check, lint, tests and build must pass, and 
   from this browser", Delete my account). Shown on `/app` and in the editor header (md and up).
 - **Privacy page** `/privacy` (in footer and sitemap). `PRIVACY_CONTACT` in `src/lib/links.ts` must be filled in by
   the owner before switching sign-in on.
-- **To switch on:** the owner creates a D1 database named `radstrat` (EU jurisdiction / Western Europe) in the
+- **Status:** D1 database `radstrat` (id b6ac8f52-8443-4b1d-8e27-62d60989990d) is bound in wrangler.jsonc. The
+  sign-in button stays hidden until `PRIVACY_CONTACT` is set (`AccountButton` checks it).
+- **How it was switched on:** the owner creates a D1 database named `radstrat` (EU jurisdiction / Western Europe) in the
   Cloudflare dashboard and sends its database ID; add `"d1_databases": [{ "binding": "DB", "database_name": "radstrat",
   "database_id": "…" }]` to wrangler.jsonc and push. Then update the FAQ/landing copy ("no accounts" is no longer
   true; sign-in is optional).

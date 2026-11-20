@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/dialog";
 import { deleteAccount, getAccount, onSyncStatus, signOut, startAutoSync, syncNow, type Account, type SyncStatus } from "@/lib/strat/cloud";
+import { PRIVACY_CONTACT } from "@/lib/links";
 import { deleteStrat, listStrats } from "@/lib/strat/storage";
 
 /**
@@ -61,7 +62,8 @@ export function AccountButton({ account, compact = false, onChanged }: { account
   const [message, setMessage] = useState("");
   useEffect(() => onSyncStatus(setStatus), []);
 
-  if (!account?.enabled) return null;
+  // Sign-in only appears once the privacy page names a contact (GDPR) and the server side exists.
+  if (!account?.enabled || !PRIVACY_CONTACT) return null;
   if (!account.signedIn) {
     return (
       <a href="/api/auth/steam" className="btn" title="Save your strats to your Steam account, so they're on every PC">
